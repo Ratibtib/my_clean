@@ -39,7 +39,16 @@ workflows:
           npx expo prebuild --platform android --clean
       - name: Fix Kotlin compatibility
         script: |
+          # Force Kotlin version compatible with Compose compiler
+          sed -i '' 's/kotlinVersion = "1.9.24"/kotlinVersion = "1.9.25"/' android/build.gradle 2>/dev/null || true
+          sed -i '' 's/kotlin_version = "1.9.24"/kotlin_version = "1.9.25"/' android/build.gradle 2>/dev/null || true
+          
+          # Also patch via gradle.properties
           echo "kotlin.suppressKotlinVersionCompatibilityCheck=true" >> android/gradle.properties
+          echo "org.jetbrains.kotlin.version=1.9.25" >> android/gradle.properties
+          
+          # Patch settings.gradle if needed
+          sed -i '' 's/org.jetbrains.kotlin.android" version "1.9.24"/org.jetbrains.kotlin.android" version "1.9.25"/' android/settings.gradle 2>/dev/null || true
       - name: Build APK (Debug)
         script: |
           cd android
