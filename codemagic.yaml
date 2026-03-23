@@ -39,18 +39,23 @@ workflows:
           npx expo prebuild --platform android --clean
       - name: Fix Kotlin compatibility
         script: |
-          # Find and replace Kotlin 1.9.24 -> 1.9.25 in ALL gradle files
-          find android -type f \( -name "*.gradle" -o -name "*.gradle.kts" -o -name "*.properties" \) -exec grep -l "1.9.24" {} \; | while read f; do
+          # Force Kotlin 1.9.25 everywhere (including node_modules)
+          find . -type f \( -name "*.gradle" -o -name "*.gradle.kts" -o -name "*.properties" \) -not -path "./.git/*" | xargs grep -l "1.9.24" 2>/dev/null | while read f; do
             echo "Patching $f"
             sed -i '' 's/1\.9\.24/1.9.25/g' "$f"
           done
           
-          # Safety net via gradle.properties
-          echo "kotlin.suppressKotlinVersionCompatibilityCheck=true" >> android/gradle.properties
+          # Force Kotlin version in root build.gradle
+          sed -i '' 's/buildscript {/buildscript {\n    ext {\n        kotlinVersion = "1.9.25"\n    }/' android/build.gradle
           
-          # Verify
-          echo "=== Checking Kotlin version references ==="
-          grep -r "1.9.24" android/ --include="*.gradle" --include="*.properties" || echo "All patched!"
+          # Override in gradle.properties
+          cat >> android/gradle.properties << EOF
+          kotlin.suppressKotlinVersionCompatibilityCheck=true
+          reactNativeArchitectures=armeabi-v7a,arm64-v8a,x86,x86_64
+          EOF
+          
+          echo "=== Verify ==="
+          grep -r "1.9.24" android/ node_modules/expo-modules-core/ --include="*.gradle" --include="*.properties" 2>/dev/null || echo "All clean!"
       - name: Build APK (Debug)
         script: |
           cd android
