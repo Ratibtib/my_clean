@@ -71,7 +71,7 @@ export function TaskListScreen() {
         data: data.sort(
           (a, b) => getStatusPriority(a.status) - getStatusPriority(b.status)
         ),
-        status: undefined,
+        status: undefined as TaskStatus | undefined,
       }))
       .sort((a, b) => {
         const worstA = Math.min(...a.data.map((d) => getStatusPriority(d.status)));
