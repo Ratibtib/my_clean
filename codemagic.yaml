@@ -30,7 +30,7 @@ workflows:
     scripts:
       - name: Install dependencies
         script: |
-          npm ci
+          npm install
       - name: TypeScript check
         script: |
           npx tsc --noEmit
@@ -72,7 +72,7 @@ workflows:
     scripts:
       - name: Install dependencies
         script: |
-          npm ci
+          npm install
       - name: TypeScript check
         script: |
           npx tsc --noEmit
