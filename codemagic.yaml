@@ -58,14 +58,9 @@ workflows:
           }
           PATCH
 
-          # Patch settings.gradle plugin version
-          sed -i '' 's/org.jetbrains.kotlin.android" version "[^"]*"/org.jetbrains.kotlin.android" version "1.9.25"/' android/settings.gradle
-
-          # Safety net
           echo "kotlin.suppressKotlinVersionCompatibilityCheck=true" >> android/gradle.properties
 
-          echo "=== Kotlin version check ==="
-          grep -i "kotlin" android/settings.gradle
+          echo "=== Patch applied ==="
       - name: Build APK (Debug)
         script: |
           cd android
