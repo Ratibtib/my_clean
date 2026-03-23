@@ -78,9 +78,10 @@ export async function scheduleTaskReminder(
       priority: isUrgent
         ? Notifications.AndroidNotificationPriority.HIGH
         : Notifications.AndroidNotificationPriority.DEFAULT,
-      channelId: 'chores',
+      data: { channelId: 'chores' },
     },
     trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
       date: triggerDate,
     },
   });
