@@ -37,28 +37,17 @@ workflows:
           npx expo prebuild --platform android --clean
       - name: Fix Kotlin compatibility
         script: |
-          # Force Compose compiler to accept Kotlin 1.9.24
-          cat >> android/build.gradle << 'PATCH'
+          cat >> android/gradle.properties << 'EOF'
+          kotlin.suppressKotlinVersionCompatibilityCheck=true
+          android.suppressKotlinVersionCompatibilityCheck=true
+          org.gradle.jvmargs=-Xmx4096m
+          EOF
 
-          subprojects {
-              configurations.all {
-                  resolutionStrategy {
-                      force "org.jetbrains.kotlin:kotlin-stdlib:1.9.25"
-                      force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.25"
-                      force "org.jetbrains.kotlin:kotlin-reflect:1.9.25"
-                  }
-              }
-              afterEvaluate {
-                  tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-                      kotlinOptions {
-                          freeCompilerArgs += ["-P", "plugin:androidx.compose.compiler.plugins.kotlin:suppressKotlinVersionCompatibilityCheck=1.9.24"]
-                      }
-                  }
-              }
-          }
-          PATCH
-
-          echo "kotlin.suppressKotlinVersionCompatibilityCheck=true" >> android/gradle.properties
+          # Add compiler arg directly in app/build.gradle
+          sed -i '' '/android {/a\
+          \    kotlinOptions {\
+          \        freeCompilerArgs += ["-P", "plugin:androidx.compose.compiler.plugins.kotlin:suppressKotlinVersionCompatibilityCheck=1.9.24"]\
+          \    }' android/app/build.gradle
 
           echo "=== Patch applied ==="
       - name: Build APK (Debug)
