@@ -15,8 +15,6 @@ workflows:
     instance_type: mac_mini_m2
     environment:
       node: 18
-      groups:
-        - supabase  # Variables : EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_ANON_KEY
       vars:
         EXPO_NO_TELEMETRY: "1"
     triggering:
@@ -39,23 +37,35 @@ workflows:
           npx expo prebuild --platform android --clean
       - name: Fix Kotlin compatibility
         script: |
-          # Force Kotlin 1.9.25 everywhere (including node_modules)
-          find . -type f \( -name "*.gradle" -o -name "*.gradle.kts" -o -name "*.properties" \) -not -path "./.git/*" | xargs grep -l "1.9.24" 2>/dev/null | while read f; do
-            echo "Patching $f"
-            sed -i '' 's/1\.9\.24/1.9.25/g' "$f"
-          done
-          
-          # Force Kotlin version in root build.gradle
-          sed -i '' 's/buildscript {/buildscript {\n    ext {\n        kotlinVersion = "1.9.25"\n    }/' android/build.gradle
-          
-          # Override in gradle.properties
-          cat >> android/gradle.properties << EOF
-          kotlin.suppressKotlinVersionCompatibilityCheck=true
-          reactNativeArchitectures=armeabi-v7a,arm64-v8a,x86,x86_64
-          EOF
-          
-          echo "=== Verify ==="
-          grep -r "1.9.24" android/ node_modules/expo-modules-core/ --include="*.gradle" --include="*.properties" 2>/dev/null || echo "All clean!"
+          # Force Compose compiler to accept Kotlin 1.9.24
+          cat >> android/build.gradle << 'PATCH'
+
+          subprojects {
+              configurations.all {
+                  resolutionStrategy {
+                      force "org.jetbrains.kotlin:kotlin-stdlib:1.9.25"
+                      force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.25"
+                      force "org.jetbrains.kotlin:kotlin-reflect:1.9.25"
+                  }
+              }
+              afterEvaluate {
+                  tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+                      kotlinOptions {
+                          freeCompilerArgs += ["-P", "plugin:androidx.compose.compiler.plugins.kotlin:suppressKotlinVersionCompatibilityCheck=1.9.24"]
+                      }
+                  }
+              }
+          }
+          PATCH
+
+          # Patch settings.gradle plugin version
+          sed -i '' 's/org.jetbrains.kotlin.android" version "[^"]*"/org.jetbrains.kotlin.android" version "1.9.25"/' android/settings.gradle
+
+          # Safety net
+          echo "kotlin.suppressKotlinVersionCompatibilityCheck=true" >> android/gradle.properties
+
+          echo "=== Kotlin version check ==="
+          grep -i "kotlin" android/settings.gradle
       - name: Build APK (Debug)
         script: |
           cd android
@@ -78,8 +88,6 @@ workflows:
     environment:
       node: 18
       xcode: latest
-      groups:
-        - supabase
       vars:
         EXPO_NO_TELEMETRY: "1"
     triggering:
@@ -108,7 +116,7 @@ workflows:
             -scheme Chorify \
             -sdk iphonesimulator \
             -configuration Debug \
-            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            -destination 'generic/platform=iOS Simulator' \
             build
     artifacts:
       - ios/build/Build/Products/Debug-iphonesimulator/*.app
