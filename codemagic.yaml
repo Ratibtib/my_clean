@@ -37,6 +37,9 @@ workflows:
       - name: Prebuild Android
         script: |
           npx expo prebuild --platform android --clean
+      - name: Fix Kotlin compatibility
+        script: |
+          echo "kotlin.suppressKotlinVersionCompatibilityCheck=true" >> android/gradle.properties
       - name: Build APK (Debug)
         script: |
           cd android
