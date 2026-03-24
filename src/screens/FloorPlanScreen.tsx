@@ -12,7 +12,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import { COLORS, SPACING, SHADOWS } from '../utils/colors';
+import { COLORS, SPACING } from '../utils/colors';
 import { FloorPlan } from '../components/FloorPlan';
 import { StreakBanner } from '../components/StreakBanner';
 import { useTaskStore } from '../store/useTaskStore';
@@ -20,7 +20,7 @@ import { useHouseholdStore } from '../store/useHouseholdStore';
 import { useStreakStore } from '../store/useStreakStore';
 
 export function FloorPlanScreen() {
-  const { targets, loading, refreshing, fetchAll, refresh } = useTaskStore();
+  const { loading, refreshing, fetchAll, refresh } = useTaskStore();
   const currentHousehold = useHouseholdStore((s) => s.currentHousehold);
   const fetchStreak = useStreakStore((s) => s.fetchStreak);
 
@@ -43,7 +43,7 @@ export function FloorPlanScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Chargement du plan…</Text>
+          <Text style={styles.loadingText}>Chargement…</Text>
         </View>
       </SafeAreaView>
     );
@@ -65,18 +65,18 @@ export function FloorPlanScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* En-tête */}
+      {/* Header */}
       <View style={styles.header}>
         <View>
           <Text style={styles.householdName}>{currentHousehold.name}</Text>
-          <Text style={styles.headerSubtitle}>Plan du foyer</Text>
+          <Text style={styles.headerSubtitle}>Touchez une pièce pour agir</Text>
         </View>
       </View>
 
       {/* Streak */}
       <StreakBanner />
 
-      {/* Plan interactif */}
+      {/* Plan */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -88,33 +88,7 @@ export function FloorPlanScreen() {
           />
         }
       >
-        {targets.length > 0 ? (
-          <FloorPlan targets={targets} />
-        ) : (
-          <View style={styles.noTargets}>
-            <Text style={styles.noTargetsIcon}>📍</Text>
-            <Text style={styles.noTargetsTitle}>Aucune cible</Text>
-            <Text style={styles.noTargetsSubtitle}>
-              Ajoutez des zones et équipements dans l'administration.
-            </Text>
-          </View>
-        )}
-
-        {/* Légende */}
-        <View style={styles.legend}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: COLORS.green }]} />
-            <Text style={styles.legendText}>À jour</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: COLORS.orange }]} />
-            <Text style={styles.legendText}>Bientôt</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: COLORS.red }]} />
-            <Text style={styles.legendText}>En retard</Text>
-          </View>
-        </View>
+        <FloorPlan />
       </ScrollView>
     </SafeAreaView>
   );
@@ -140,7 +114,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.textSecondary,
     marginTop: 2,
   },
@@ -148,7 +122,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: SPACING.md,
+    paddingHorizontal: SPACING.xs,
     paddingBottom: SPACING.xxl,
   },
   loadingContainer: {
@@ -181,50 +155,5 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     textAlign: 'center',
     marginTop: SPACING.sm,
-  },
-  noTargets: {
-    alignItems: 'center',
-    paddingVertical: SPACING.xxl * 2,
-  },
-  noTargetsIcon: {
-    fontSize: 40,
-    marginBottom: SPACING.md,
-  },
-  noTargetsTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text,
-  },
-  noTargetsSubtitle: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginTop: SPACING.sm,
-    maxWidth: 260,
-  },
-  legend: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: SPACING.lg,
-    marginTop: SPACING.lg,
-    paddingVertical: SPACING.md,
-    backgroundColor: COLORS.surface,
-    borderRadius: 12,
-    ...SHADOWS.sm,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xs,
-  },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  legendText: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    fontWeight: '500',
   },
 });
