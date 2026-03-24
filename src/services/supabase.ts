@@ -2,7 +2,6 @@
 // CHORIFY — Client Supabase
 // ============================================================
 
-import 'react-native-url-polyfill/shims';
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
