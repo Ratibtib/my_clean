@@ -1,14 +1,8 @@
 # ============================================================
 # CHORIFY — Codemagic CI/CD
 # ============================================================
-# Pipeline :
-#   1. Push sur GitHub (main ou dev)
-#   2. Build automatique via Codemagic
-#   3. Génération APK / IPA
-# ============================================================
 
 workflows:
-  # --- Build Android (APK) ---
   android-build:
     name: Chorify Android
     max_build_duration: 60
@@ -35,12 +29,21 @@ workflows:
       - name: Prebuild Android
         script: |
           npx expo prebuild --platform android --clean
-      - name: Build APK (Debug)
+      - name: Bundle JS assets
+        script: |
+          mkdir -p android/app/src/main/assets
+          npx react-native bundle \
+            --platform android \
+            --dev false \
+            --entry-file node_modules/expo/AppEntry.js \
+            --bundle-output android/app/src/main/assets/index.android.bundle \
+            --assets-dest android/app/src/main/res
+      - name: Build APK
         script: |
           cd android
-          ./gradlew assembleDebug
+          ./gradlew assembleRelease
     artifacts:
-      - android/app/build/outputs/apk/debug/app-debug.apk
+      - android/app/build/outputs/apk/release/app-release.apk
     publishing:
       email:
         recipients:
@@ -49,7 +52,6 @@ workflows:
           success: true
           failure: true
 
-  # --- Build iOS (Simulator) ---
   ios-build:
     name: Chorify iOS
     max_build_duration: 60
