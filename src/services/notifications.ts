@@ -80,9 +80,8 @@ export async function scheduleTaskReminder(
         : Notifications.AndroidNotificationPriority.DEFAULT,
       },
     trigger: {
-      channelId: 'chores',
       date: triggerDate,
-    },
+    } as any,
   });
 
   return id;
