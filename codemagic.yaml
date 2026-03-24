@@ -22,11 +22,9 @@ workflows:
         script: npx tsc --noEmit
       - name: Prebuild Android
         script: npx expo prebuild --platform android --clean
-      - name: Bundle JS assets
-        script: |
-          mkdir -p android/app/src/main/assets
-          npx @react-native-community/cli bundle --platform android --entry-file node_modules/expo/AppEntry.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res --dev false
       - name: Build APK
+        script: cd android && ./gradlew assembleRelease
+    - name: Build APK
         script: cd android && ./gradlew assembleRelease
     artifacts:
       - android/app/build/outputs/apk/release/app-release.apk
