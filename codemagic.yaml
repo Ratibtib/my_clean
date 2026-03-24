@@ -1,7 +1,3 @@
-# ============================================================
-# CHORIFY — Codemagic CI/CD
-# ============================================================
-
 workflows:
   android-build:
     name: Chorify Android
@@ -21,27 +17,17 @@ workflows:
           include: true
     scripts:
       - name: Install dependencies
-        script: |
-          npm install
+        script: npm install
       - name: TypeScript check
-        script: |
-          npx tsc --noEmit
+        script: npx tsc --noEmit
       - name: Prebuild Android
-        script: |
-          npx expo prebuild --platform android --clean
-       - name: Bundle JS assets
+        script: npx expo prebuild --platform android --clean
+      - name: Bundle JS assets
         script: |
           mkdir -p android/app/src/main/assets
-          npx expo export:embed \
-            --platform android \
-            --entry-file node_modules/expo/AppEntry.js \
-            --bundle-output android/app/src/main/assets/index.android.bundle \
-            --assets-dest android/app/src/main/res \
-            --dev false
+          npx @react-native-community/cli bundle --platform android --entry-file node_modules/expo/AppEntry.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res --dev false
       - name: Build APK
-        script: |
-          cd android
-          ./gradlew assembleRelease
+        script: cd android && ./gradlew assembleRelease
     artifacts:
       - android/app/build/outputs/apk/release/app-release.apk
     publishing:
@@ -51,7 +37,6 @@ workflows:
         notify:
           success: true
           failure: true
-
   ios-build:
     name: Chorify iOS
     max_build_duration: 60
@@ -69,26 +54,15 @@ workflows:
           include: true
     scripts:
       - name: Install dependencies
-        script: |
-          npm install
+        script: npm install
       - name: TypeScript check
-        script: |
-          npx tsc --noEmit
+        script: npx tsc --noEmit
       - name: Prebuild iOS
-        script: |
-          npx expo prebuild --platform ios --clean
+        script: npx expo prebuild --platform ios --clean
       - name: Install CocoaPods
-        script: |
-          cd ios && pod install
+        script: cd ios && pod install
       - name: Build for Simulator
-        script: |
-          cd ios
-          xcodebuild -workspace Chorify.xcworkspace \
-            -scheme Chorify \
-            -sdk iphonesimulator \
-            -configuration Debug \
-            -destination 'generic/platform=iOS Simulator' \
-            build
+        script: cd ios && xcodebuild -workspace Chorify.xcworkspace -scheme Chorify -sdk iphonesimulator -configuration Debug -destination 'generic/platform=iOS Simulator' build
     artifacts:
       - ios/build/Build/Products/Debug-iphonesimulator/*.app
     publishing:
