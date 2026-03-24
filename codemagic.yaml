@@ -35,21 +35,6 @@ workflows:
       - name: Prebuild Android
         script: |
           npx expo prebuild --platform android --clean
-      - name: Fix Kotlin compatibility
-        script: |
-          cat >> android/gradle.properties << 'EOF'
-          kotlin.suppressKotlinVersionCompatibilityCheck=true
-          android.suppressKotlinVersionCompatibilityCheck=true
-          org.gradle.jvmargs=-Xmx4096m
-          EOF
-
-          # Add compiler arg directly in app/build.gradle
-          sed -i '' '/android {/a\
-          \    kotlinOptions {\
-          \        freeCompilerArgs += ["-P", "plugin:androidx.compose.compiler.plugins.kotlin:suppressKotlinVersionCompatibilityCheck=1.9.24"]\
-          \    }' android/app/build.gradle
-
-          echo "=== Patch applied ==="
       - name: Build APK (Debug)
         script: |
           cd android
