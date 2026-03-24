@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Chorify — Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #22C55E; --green-light: #DCFCE7; --green-dark: #166534;
+    --orange: #F59E0B; --orange-light: #FEF3C7; --orange-dark: #92400E;
+    --red: #EF4444; --red-light: #FEE2E2; --red-dark: #991B1B;
+    --bg: #FAFAF9; --surface: #FFFFFF; --surface-alt: #F5F5F4;
+    --border: #E7E5E4; --border-light: #F5F5F4;
+    --text: #1C1917; --text-2: #78716C; --text-3: #A8A29E;
+    --primary: #1C1917;
+    --streak: #8B5CF6; --streak-light: #EDE9FE;
+    --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 24px;
+    --font-display: 'Outfit', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: var(--font-body);
+    background: #1C1917;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 16px;
+  }
+
+  /* Phone frame */
+  .phone-frame {
+    width: 390px;
+    height: 844px;
+    background: var(--bg);
+    border-radius: 44px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 0 0 3px #292524, 0 25px 80px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .notch {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 160px; height: 34px;
+    background: #1C1917;
+    border-radius: 0 0 20px 20px;
+    z-index: 100;
+  }
+
+  /* Screen container */
+  .screen-area {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-top: 50px;
+    padding-bottom: 90px;
+    scroll-behavior: smooth;
+  }
+  .screen-area::-webkit-scrollbar { display: none; }
+
+  .screen { display: none; animation: fadeIn 0.25s ease; }
+  .screen.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Tab bar */
+  .tab-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 84px;
+    background: var(--surface);
+    border-top: 1px solid var(--border-light);
+    display: flex;
+    align-items: flex-start;
+    padding-top: 8px;
+    padding-bottom: 28px;
+    z-index: 50;
+  }
+
+  .tab-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    padding: 4px 0;
+    transition: transform 0.15s;
+  }
+  .tab-item:active { transform: scale(0.92); }
+
+  .tab-icon {
+    font-size: 20px;
+    opacity: 0.4;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .tab-item.active .tab-icon { opacity: 1; transform: scale(1.1); }
+
+  .tab-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-3);
+    letter-spacing: 0.02em;
+    transition: color 0.2s;
+  }
+  .tab-item.active .tab-label { color: var(--text); }
+
+  /* Header */
+  .header {
+    padding: 4px 24px 12px;
+  }
+  .header-title {
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 900;
+    color: var(--text);
+    letter-spacing: -0.5px;
+  }
+  .header-sub {
+    font-size: 13px;
+    color: var(--text-2);
+    margin-top: 1px;
+  }
+
+  /* Streak banner */
+  .streak-banner {
+    display: flex;
+    align-items: center;
+    background: var(--streak-light);
+    margin: 0 16px 12px;
+    padding: 10px 16px;
+    border-radius: var(--radius-lg);
+    gap: 10px;
+    box-shadow: 0 1px 4px rgba(139,92,246,0.08);
+    animation: streakPulse 3s ease-in-out infinite;
+  }
+  @keyframes streakPulse {
+    0%, 100% { box-shadow: 0 1px 4px rgba(139,92,246,0.08); }
+    50% { box-shadow: 0 2px 12px rgba(139,92,246,0.15); }
+  }
+  .streak-flame { font-size: 26px; }
+  .streak-count {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--streak);
+  }
+  .streak-label {
+    font-size: 13px;
+    color: var(--streak);
+    font-weight: 500;
+  }
+
+  /* Status badge */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .badge-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+  }
+  .badge-green { background: var(--green-light); color: var(--green-dark); }
+  .badge-green .badge-dot { background: var(--green); }
+  .badge-orange { background: var(--orange-light); color: var(--orange-dark); }
+  .badge-orange .badge-dot { background: var(--orange); }
+  .badge-red { background: var(--red-light); color: var(--red-dark); }
+  .badge-red .badge-dot { background: var(--red); }
+
+  /* ===================== FLOOR PLAN ===================== */
+  .floor-plan-container {
+    margin: 0 16px 16px;
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    position: relative;
+    height: 380px;
+    overflow: hidden;
+    /* subtle grid pattern */
+    background-image:
+      linear-gradient(rgba(0,0,0,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,0,0,0.015) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .target-node {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: 2px solid;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    z-index: 2;
+  }
+  .target-node:hover { transform: scale(1.08); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+  .target-node:active { transform: scale(0.96); }
+
+  .target-node.zone {
+    border-radius: var(--radius-lg);
+    width: 80px; height: 80px;
+    padding: 6px;
+  }
+  .target-node.equipment {
+    border-radius: 50%;
+    width: 58px; height: 58px;
+    padding: 4px;
+  }
+  .target-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.2;
+    pointer-events: none;
+  }
+
+  .target-node.status-green { background: var(--green-light); border-color: var(--green); }
+  .target-node.status-green .target-label { color: var(--green-dark); }
+  .target-node.status-orange { background: var(--orange-light); border-color: var(--orange); }
+  .target-node.status-orange .target-label { color: var(--orange-dark); }
+  .target-node.status-red { background: var(--red-light); border-color: var(--red); animation: redPulse 2s ease-in-out infinite; }
+  .target-node.status-red .target-label { color: var(--red-dark); }
+
+  @keyframes redPulse {
+    0%, 100% { box-shadow: 0 2px 8px rgba(239,68,68,0.1); }
+    50% { box-shadow: 0 2px 20px rgba(239,68,68,0.3); }
+  }
+
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin: 0 16px;
+    padding: 12px;
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 9px; height: 9px; border-radius: 50%; }
+  .legend-text { font-size: 12px; color: var(--text-2); font-weight: 500; }
+
+  /* ===================== TASK LIST ===================== */
+  .toggle-row {
+    display: flex;
+    margin: 0 16px 14px;
+    background: var(--surface-alt);
+    border-radius: var(--radius-md);
+    padding: 3px;
+  }
+  .toggle-btn {
+    flex: 1;
+    padding: 8px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-3);
+    border: none;
+    background: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .toggle-btn.active {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 24px;
+    margin-top: 8px;
+  }
+  .section-title {
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .section-count {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-3);
+  }
+
+  /* Task card */
+  .task-card {
+    display: flex;
+    margin: 0 16px 10px;
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .task-card:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+  .task-card:active { transform: scale(0.98); }
+
+  .task-status-bar { width: 4px; flex-shrink: 0; }
+  .task-content { flex: 1; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .task-header { display: flex; justify-content: space-between; align-items: flex-start; }
+  .task-type {
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .task-target { font-size: 13px; color: var(--text-2); font-weight: 500; margin-top: 1px; }
+
+  .progress-bar {
+    height: 4px;
+    background: var(--border-light);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.6s ease;
+  }
+
+  .task-footer {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-3);
+    font-weight: 500;
+  }
+
+  /* Compact task card */
+  .task-compact {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0 16px 6px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border-left: 3px solid;
+    border-radius: var(--radius-sm);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .task-compact:active { transform: scale(0.98); }
+  .task-compact-info { flex: 1; }
+  .task-compact-type { font-size: 13px; font-weight: 600; color: var(--text); }
+  .task-compact-target { font-size: 11px; color: var(--text-2); margin-top: 1px; }
+
+  /* ===================== HISTORY ===================== */
+  .history-card {
+    display: flex;
+    margin: 0 16px 8px;
+    padding: 14px;
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    gap: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .history-card:active { transform: scale(0.98); }
+  .history-icon {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--green-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    color: var(--green);
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .history-content { flex: 1; }
+  .history-title { font-size: 15px; font-weight: 700; color: var(--text); }
+  .history-target { font-size: 13px; color: var(--text-2); margin-top: 1px; }
+  .history-meta { display: flex; gap: 6px; align-items: center; margin-top: 4px; font-size: 11px; color: var(--text-3); }
+
+  /* ===================== STATS ===================== */
+  .score-card {
+    margin: 0 16px 14px;
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .score-value {
+    font-family: var(--font-display);
+    font-size: 54px;
+    font-weight: 900;
+    color: var(--text);
+    letter-spacing: -3px;
+    line-height: 1;
+  }
+  .score-label { font-size: 14px; color: var(--text-2); font-weight: 500; margin: 4px 0 16px; }
+
+  .bar-container {
+    display: flex;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--border-light);
+  }
+  .bar-segment { height: 100%; transition: flex 0.6s ease; }
+
+  .bar-legend { display: flex; justify-content: space-between; margin-top: 10px; }
+  .bar-legend span { font-size: 13px; font-weight: 600; }
+
+  .metrics-row {
+    display: flex;
+    gap: 12px;
+    margin: 0 16px 14px;
+  }
+  .metric-card {
+    flex: 1;
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    text-align: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .metric-value {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .metric-label { font-size: 11px; color: var(--text-2); font-weight: 500; margin-top: 4px; }
+
+  .contrib-section { padding: 0 20px; }
+  .contrib-title {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--text);
+    margin: 16px 0 12px;
+  }
+  .contrib-row { margin-bottom: 14px; }
+  .contrib-info { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .contrib-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .contrib-count { font-size: 14px; font-weight: 700; color: var(--text-2); }
+  .contrib-bar-bg {
+    height: 6px;
+    background: var(--border-light);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .contrib-bar-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 3px;
+    transition: width 0.8s ease;
+  }
+
+  /* ===================== ADMIN ===================== */
+  .admin-tabs {
+    display: flex;
+    margin: 0 16px 16px;
+    background: var(--surface-alt);
+    border-radius: var(--radius-md);
+    padding: 3px;
+  }
+  .admin-tab {
+    flex: 1;
+    padding: 8px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-3);
+    border: none;
+    background: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .admin-tab.active {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+
+  .admin-section { padding: 0 20px; }
+  .admin-section-title {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--text);
+    margin: 8px 0 12px;
+  }
+  .admin-input {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-family: var(--font-body);
+    color: var(--text);
+    margin-bottom: 10px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .admin-input:focus { border-color: var(--text); }
+  .admin-input::placeholder { color: var(--text-3); }
+
+  .type-toggle {
+    display: flex; gap: 8px; margin-bottom: 12px;
+  }
+  .type-btn {
+    padding: 7px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: none;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-2);
+    cursor: pointer;
+    font-family: var(--font-body);
+    transition: all 0.2s;
+  }
+  .type-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
+
+  .admin-add-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-weight: 700;
+    font-family: var(--font-body);
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    transition: transform 0.15s;
+    margin-bottom: 16px;
+  }
+  .admin-add-btn:active { transform: scale(0.97); }
+
+  .admin-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    margin-bottom: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .admin-item-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .admin-item-sub { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+  .admin-delete {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--red);
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: var(--font-body);
+    padding: 4px 8px;
+  }
+
+  .info-card {
+    padding: 14px;
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    margin-bottom: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .info-label { font-size: 11px; color: var(--text-3); font-weight: 500; }
+  .info-value { font-size: 15px; font-weight: 700; color: var(--text); margin-top: 2px; }
+
+  /* ===================== BOTTOM SHEET ===================== */
+  .sheet-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 80;
+    display: none;
+  }
+  .sheet-overlay.visible { display: flex; flex-direction: column; justify-content: flex-end; }
+  .sheet-backdrop {
+    flex: 1;
+    background: rgba(0,0,0,0.4);
+    animation: fadeInBg 0.2s ease;
+  }
+  @keyframes fadeInBg { from { opacity: 0; } to { opacity: 1; } }
+
+  .sheet {
+    background: var(--surface);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding: 10px 0 32px;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.12);
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    max-height: 60%;
+    overflow-y: auto;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .sheet-handle {
+    width: 36px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 14px;
+  }
+  .sheet-title {
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 800;
+    color: var(--text);
+    padding: 0 24px;
+  }
+  .sheet-sub { font-size: 13px; color: var(--text-2); padding: 2px 24px 14px; }
+
+  .sheet-task {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0 20px 8px;
+    padding: 14px;
+    background: var(--surface-alt);
+    border-radius: var(--radius-md);
+    border-left: 4px solid;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .sheet-task:active { transform: scale(0.97); }
+  .sheet-task-name { font-size: 15px; font-weight: 600; color: var(--text); }
+  .sheet-task-status { font-size: 11px; font-weight: 500; margin-top: 2px; }
+
+  .sheet-validate-btn {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: 700;
+    transition: transform 0.15s;
+  }
+  .sheet-validate-btn:active { transform: scale(0.88); }
+
+  .sheet-close {
+    margin: 12px 20px 0;
+    padding: 12px;
+    background: var(--surface-alt);
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-2);
+    cursor: pointer;
+    width: calc(100% - 40px);
+    font-family: var(--font-body);
+    transition: background 0.2s;
+  }
+  .sheet-close:hover { background: var(--border); }
+
+  /* Toast */
+  .toast {
+    position: absolute;
+    top: 60px;
+    left: 50%; transform: translateX(-50%) translateY(-20px);
+    background: var(--green-dark);
+    color: white;
+    padding: 10px 20px;
+    border-radius: var(--radius-full, 20px);
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    box-shadow: 0 4px 20px rgba(34,197,94,0.3);
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 48px 24px;
+  }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-text { font-size: 15px; color: var(--text-2); }
+
+  /* Agenda section header */
+  .agenda-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    margin: 8px 16px 4px;
+    border-radius: var(--radius-sm);
+  }
+  .agenda-section.today { background: var(--streak-light); }
+  .agenda-section.past { opacity: 0.5; }
+  .agenda-date {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .agenda-section.today .agenda-date { color: var(--streak); }
+  .agenda-section.past .agenda-date { color: var(--red); }
+  .agenda-count { font-size: 12px; color: var(--text-3); font-weight: 500; }
+
+  /* Responsive */
+  @media (max-width: 420px) {
+    body { padding: 0; }
+    .phone-frame {
+      width: 100%;
+      height: 100vh;
+      border-radius: 0;
+      box-shadow: none;
+    }
+    .notch { display: none; }
+    .screen-area { padding-top: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <div class="notch"></div>
+
+  <!-- Toast notification -->
+  <div class="toast" id="toast">✓ Tâche validée !</div>
+
+  <!-- ============ SCREEN: FLOOR PLAN ============ -->
+  <div class="screen-area" id="screenArea">
+    <div class="screen active" id="screen-plan">
+      <div class="header">
+        <div class="header-title">Maison Ramothe</div>
+        <div class="header-sub">Plan du foyer</div>
+      </div>
+
+      <div class="streak-banner">
+        <span class="streak-flame">🔥</span>
+        <span class="streak-count" id="streakCount">12</span>
+        <span class="streak-label">jours sans retard</span>
+      </div>
+
+      <div class="floor-plan-container" id="floorPlan"></div>
+
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--green)"></div>
+          <span class="legend-text">À jour</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--orange)"></div>
+          <span class="legend-text">Bientôt</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--red)"></div>
+          <span class="legend-text">En retard</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ SCREEN: TASK LIST ============ -->
+    <div class="screen" id="screen-tasks">
+      <div class="header">
+        <div class="header-title">Tâches</div>
+        <div class="header-sub" id="taskCount"></div>
+      </div>
+
+      <div class="streak-banner">
+        <span class="streak-flame">🔥</span>
+        <span class="streak-count">12</span>
+        <span class="streak-label">jours sans retard</span>
+      </div>
+
+      <div class="toggle-row">
+        <button class="toggle-btn active" onclick="setGroupBy('status')">Par statut</button>
+        <button class="toggle-btn" onclick="setGroupBy('zone')">Par zone</button>
+      </div>
+
+      <div id="taskListContent"></div>
+    </div>
+
+    <!-- ============ SCREEN: HISTORY ============ -->
+    <div class="screen" id="screen-history">
+      <div class="header">
+        <div class="header-title">Historique</div>
+        <div class="header-sub">Appui long pour supprimer</div>
+      </div>
+      <div id="historyContent"></div>
+    </div>
+
+    <!-- ============ SCREEN: AGENDA ============ -->
+    <div class="screen" id="screen-agenda">
+      <div class="header">
+        <div class="header-title">Agenda</div>
+        <div class="header-sub">Échéances à venir</div>
+      </div>
+      <div id="agendaContent"></div>
+    </div>
+
+    <!-- ============ SCREEN: STATS ============ -->
+    <div class="screen" id="screen-stats">
+      <div class="header">
+        <div class="header-title">Statistiques</div>
+        <div class="header-sub">30 derniers jours</div>
+      </div>
+      <div id="statsContent"></div>
+    </div>
+
+    <!-- ============ SCREEN: ADMIN ============ -->
+    <div class="screen" id="screen-admin">
+      <div class="header">
+        <div class="header-title">Administration</div>
+        <div class="header-sub">Maison Ramothe</div>
+      </div>
+      <div id="adminContent"></div>
+    </div>
+  </div>
+
+  <!-- Bottom sheet -->
+  <div class="sheet-overlay" id="sheetOverlay">
+    <div class="sheet-backdrop" onclick="closeSheet()"></div>
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title" id="sheetTitle"></div>
+      <div class="sheet-sub" id="sheetSub"></div>
+      <div id="sheetTasks"></div>
+      <button class="sheet-close" onclick="closeSheet()">Fermer</button>
+    </div>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <button class="tab-item active" onclick="switchTab('plan')">
+      <span class="tab-icon">🏠</span>
+      <span class="tab-label">Plan</span>
+    </button>
+    <button class="tab-item" onclick="switchTab('tasks')">
+      <span class="tab-icon">📋</span>
+      <span class="tab-label">Tâches</span>
+    </button>
+    <button class="tab-item" onclick="switchTab('history')">
+      <span class="tab-icon">🕐</span>
+      <span class="tab-label">Historique</span>
+    </button>
+    <button class="tab-item" onclick="switchTab('agenda')">
+      <span class="tab-icon">📅</span>
+      <span class="tab-label">Agenda</span>
+    </button>
+    <button class="tab-item" onclick="switchTab('stats')">
+      <span class="tab-icon">📊</span>
+      <span class="tab-label">Stats</span>
+    </button>
+    <button class="tab-item" onclick="switchTab('admin')">
+      <span class="tab-icon">⚙️</span>
+      <span class="tab-label">Admin</span>
+    </button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CHORIFY PREVIEW — DATA & LOGIC
+// ============================================================
+
+const TARGETS = [
+  { id: 't1', name: 'Cuisine', type: 'zone', x: 60, y: 55 },
+  { id: 't2', name: 'Salon', type: 'zone', x: 250, y: 65 },
+  { id: 't3', name: 'Chambre', type: 'zone', x: 90, y: 220 },
+  { id: 't4', name: 'Salle de bain', type: 'zone', x: 260, y: 230 },
+  { id: 't5', name: 'Entrée', type: 'zone', x: 170, y: 310 },
+  { id: 't6', name: 'Four', type: 'equipment', x: 55, y: 130 },
+  { id: 't7', name: 'Frigo', type: 'equipment', x: 135, y: 55 },
+  { id: 't8', name: 'WC', type: 'equipment', x: 310, y: 310 },
+  { id: 't9', name: 'Machine à laver', type: 'equipment', x: 310, y: 145 },
+];
+
+let TASKS = [
+  { id: 'd1', type: 'Nettoyer', target: 'Cuisine', maxDays: 3, lastDone: daysAgo(1), doneBy: 'Thibault' },
+  { id: 'd2', type: 'Aspirer', target: 'Salon', maxDays: 5, lastDone: daysAgo(2), doneBy: 'Marie' },
+  { id: 'd3', type: 'Ranger', target: 'Chambre', maxDays: 7, lastDone: daysAgo(5), doneBy: 'Thibault' },
+  { id: 'd4', type: 'Laver', target: 'Salle de bain', maxDays: 4, lastDone: daysAgo(4.2), doneBy: 'Marie' },
+  { id: 'd5', type: 'Dépoussiérer', target: 'Salon', maxDays: 10, lastDone: daysAgo(3), doneBy: 'Thibault' },
+  { id: 'd6', type: 'Nettoyer', target: 'Four', maxDays: 14, lastDone: daysAgo(13.5), doneBy: 'Marie' },
+  { id: 'd7', type: 'Nettoyer', target: 'Frigo', maxDays: 14, lastDone: daysAgo(6), doneBy: 'Thibault' },
+  { id: 'd8', type: 'Désinfecter', target: 'WC', maxDays: 3, lastDone: daysAgo(2.5), doneBy: 'Marie' },
+  { id: 'd9', type: 'Nettoyer', target: 'Machine à laver', maxDays: 30, lastDone: daysAgo(10), doneBy: 'Thibault' },
+  { id: 'd10', type: 'Aspirer', target: 'Entrée', maxDays: 4, lastDone: daysAgo(3.8), doneBy: 'Marie' },
+  { id: 'd11', type: 'Laver', target: 'Cuisine', maxDays: 2, lastDone: daysAgo(0.5), doneBy: 'Thibault' },
+  { id: 'd12', type: 'Ranger', target: 'Entrée', maxDays: 7, lastDone: daysAgo(1), doneBy: 'Marie' },
+];
+
+let COMPLETIONS = [
+  { id: 'c1', task: 'Laver', target: 'Cuisine', user: 'Thibault', date: daysAgo(0.5) },
+  { id: 'c2', task: 'Nettoyer', target: 'Cuisine', user: 'Thibault', date: daysAgo(1) },
+  { id: 'c3', task: 'Ranger', target: 'Entrée', user: 'Marie', date: daysAgo(1) },
+  { id: 'c4', task: 'Aspirer', target: 'Salon', user: 'Marie', date: daysAgo(2) },
+  { id: 'c5', task: 'Désinfecter', target: 'WC', user: 'Marie', date: daysAgo(2.5) },
+  { id: 'c6', task: 'Dépoussiérer', target: 'Salon', user: 'Thibault', date: daysAgo(3) },
+  { id: 'c7', task: 'Aspirer', target: 'Entrée', user: 'Marie', date: daysAgo(3.8) },
+  { id: 'c8', task: 'Laver', target: 'Salle de bain', user: 'Marie', date: daysAgo(4.2) },
+  { id: 'c9', task: 'Ranger', target: 'Chambre', user: 'Thibault', date: daysAgo(5) },
+  { id: 'c10', task: 'Nettoyer', target: 'Frigo', user: 'Thibault', date: daysAgo(6) },
+  { id: 'c11', task: 'Nettoyer', target: 'Machine à laver', user: 'Thibault', date: daysAgo(10) },
+  { id: 'c12', task: 'Nettoyer', target: 'Four', user: 'Marie', date: daysAgo(13.5) },
+];
+
+function daysAgo(n) {
+  const d = new Date();
+  d.setTime(d.getTime() - n * 86400000);
+  return d;
+}
+
+function getStatus(task) {
+  const elapsed = (Date.now() - task.lastDone.getTime()) / 86400000;
+  const ratio = elapsed / task.maxDays;
+  if (ratio <= 0.6) return 'green';
+  if (ratio <= 0.9) return 'orange';
+  return 'red';
+}
+
+function getRatio(task) {
+  return Math.min((Date.now() - task.lastDone.getTime()) / (task.maxDays * 86400000), 1.2);
+}
+
+function getDaysLeft(task) {
+  const deadline = new Date(task.lastDone.getTime() + task.maxDays * 86400000);
+  return ((deadline - Date.now()) / 86400000);
+}
+
+function getDeadline(task) {
+  return new Date(task.lastDone.getTime() + task.maxDays * 86400000);
+}
+
+function timeAgo(date) {
+  const mins = Math.floor((Date.now() - date.getTime()) / 60000);
+  if (mins < 1) return "à l'instant";
+  if (mins < 60) return `il y a ${mins}min`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `il y a ${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  return `il y a ${days}j`;
+}
+
+function formatDate(date) {
+  return date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+function isToday(date) {
+  return date.toDateString() === new Date().toDateString();
+}
+
+function statusLabel(s) {
+  return s === 'green' ? 'À jour' : s === 'orange' ? 'Bientôt' : 'En retard';
+}
+
+function statusColor(s) {
+  return s === 'green' ? 'var(--green)' : s === 'orange' ? 'var(--orange)' : 'var(--red)';
+}
+
+function statusColorDark(s) {
+  return s === 'green' ? 'var(--green-dark)' : s === 'orange' ? 'var(--orange-dark)' : 'var(--red-dark)';
+}
+
+function getTargetStatus(targetName) {
+  const tasks = TASKS.filter(t => t.target === targetName);
+  if (tasks.length === 0) return 'green';
+  if (tasks.some(t => getStatus(t) === 'red')) return 'red';
+  if (tasks.some(t => getStatus(t) === 'orange')) return 'orange';
+  return 'green';
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+
+let currentTab = 'plan';
+let groupBy = 'status';
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(`screen-${tab}`).classList.add('active');
+  document.querySelectorAll('.tab-item').forEach((t, i) => {
+    const tabs = ['plan', 'tasks', 'history', 'agenda', 'stats', 'admin'];
+    t.classList.toggle('active', tabs[i] === tab);
+  });
+  document.getElementById('screenArea').scrollTop = 0;
+  renderScreen(tab);
+}
+
+function setGroupBy(mode) {
+  groupBy = mode;
+  document.querySelectorAll('.toggle-btn').forEach((b, i) => {
+    b.classList.toggle('active', (i === 0 && mode === 'status') || (i === 1 && mode === 'zone'));
+  });
+  renderTaskList();
+}
+
+function renderScreen(tab) {
+  if (tab === 'tasks') renderTaskList();
+  if (tab === 'history') renderHistory();
+  if (tab === 'agenda') renderAgenda();
+  if (tab === 'stats') renderStats();
+  if (tab === 'admin') renderAdmin();
+}
+
+// ============================================================
+// FLOOR PLAN
+// ============================================================
+
+function renderFloorPlan() {
+  const container = document.getElementById('floorPlan');
+  container.innerHTML = '';
+
+  TARGETS.forEach(t => {
+    const status = getTargetStatus(t.name);
+    const node = document.createElement('div');
+    node.className = `target-node ${t.type} status-${status}`;
+    node.style.left = `${t.x}px`;
+    node.style.top = `${t.y}px`;
+    node.innerHTML = `<span class="target-label">${t.name}</span>`;
+    node.onclick = () => openSheet(t);
+    container.appendChild(node);
+  });
+}
+
+// ============================================================
+// BOTTOM SHEET
+// ============================================================
+
+function openSheet(target) {
+  const tasks = TASKS.filter(t => t.target === target.name);
+  document.getElementById('sheetTitle').textContent = target.name;
+  document.getElementById('sheetSub').textContent = `${tasks.length} tâche${tasks.length > 1 ? 's' : ''}`;
+
+  const container = document.getElementById('sheetTasks');
+  container.innerHTML = '';
+
+  tasks.forEach(task => {
+    const status = getStatus(task);
+    const div = document.createElement('div');
+    div.className = 'sheet-task';
+    div.style.borderLeftColor = statusColor(status);
+    div.innerHTML = `
+      <div>
+        <div class="sheet-task-name">${task.type}</div>
+        <div class="sheet-task-status" style="color:${statusColorDark(status)}">${statusLabel(status)}</div>
+      </div>
+      <button class="sheet-validate-btn" style="background:${status === 'green' ? 'var(--green-light)' : status === 'orange' ? 'var(--orange-light)' : 'var(--red-light)'}; color:${statusColorDark(status)}" onclick="validateTask('${task.id}')">✓</button>
+    `;
+    container.appendChild(div);
+  });
+
+  document.getElementById('sheetOverlay').classList.add('visible');
+}
+
+function closeSheet() {
+  document.getElementById('sheetOverlay').classList.remove('visible');
+}
+
+function validateTask(taskId) {
+  const task = TASKS.find(t => t.id === taskId);
+  if (!task) return;
+
+  // Optimistic update
+  task.lastDone = new Date();
+  task.doneBy = 'Thibault';
+
+  // Add to completions
+  COMPLETIONS.unshift({
+    id: 'c' + Date.now(),
+    task: task.type,
+    target: task.target,
+    user: 'Thibault',
+    date: new Date()
+  });
+
+  // Show toast
+  showToast(`✓ ${task.type} — ${task.target}`);
+
+  // Re-render
+  renderFloorPlan();
+  closeSheet();
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+// ============================================================
+// TASK LIST
+// ============================================================
+
+function renderTaskList() {
+  document.getElementById('taskCount').textContent = `${TASKS.length} tâches`;
+  const container = document.getElementById('taskListContent');
+  container.innerHTML = '';
+
+  if (groupBy === 'status') {
+    const groups = { red: [], orange: [], green: [] };
+    TASKS.forEach(t => groups[getStatus(t)].push(t));
+
+    const labels = { red: '🔴 En retard', orange: '🟠 Bientôt', green: '🟢 À jour' };
+
+    ['red', 'orange', 'green'].forEach(status => {
+      if (groups[status].length === 0) return;
+      container.innerHTML += `
+        <div class="section-header">
+          <span class="section-title">${labels[status]}</span>
+          <span class="section-count">${groups[status].length}</span>
+        </div>
+      `;
+      groups[status].forEach(t => container.innerHTML += renderTaskCard(t));
+    });
+  } else {
+    const byZone = {};
+    TASKS.forEach(t => {
+      if (!byZone[t.target]) byZone[t.target] = [];
+      byZone[t.target].push(t);
+    });
+
+    Object.entries(byZone).forEach(([zone, tasks]) => {
+      container.innerHTML += `
+        <div class="section-header">
+          <span class="section-title">${zone}</span>
+          <span class="section-count">${tasks.length}</span>
+        </div>
+      `;
+      tasks.forEach(t => container.innerHTML += renderTaskCard(t));
+    });
+  }
+}
+
+function renderTaskCard(task) {
+  const status = getStatus(task);
+  const ratio = getRatio(task);
+  const daysLeft = getDaysLeft(task);
+
+  return `
+    <div class="task-card" onclick="validateTask('${task.id}')">
+      <div class="task-status-bar" style="background:${statusColor(status)}"></div>
+      <div class="task-content">
+        <div class="task-header">
+          <div>
+            <div class="task-type">${task.type}</div>
+            <div class="task-target">${task.target}</div>
+          </div>
+          <span class="badge badge-${status}">
+            <span class="badge-dot"></span>
+            ${statusLabel(status)}
+          </span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width:${Math.min(ratio * 100, 100)}%; background:${statusColor(status)}"></div>
+        </div>
+        <div class="task-footer">
+          <span>Fait ${timeAgo(task.lastDone)}</span>
+          <span style="color:${statusColorDark(status)}">
+            ${daysLeft > 0 ? `${Math.ceil(daysLeft)}j restants` : `${Math.abs(Math.floor(daysLeft))}j de retard`}
+          </span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================
+// HISTORY
+// ============================================================
+
+function renderHistory() {
+  const container = document.getElementById('historyContent');
+  container.innerHTML = '';
+
+  COMPLETIONS.forEach(c => {
+    container.innerHTML += `
+      <div class="history-card">
+        <div class="history-icon">✓</div>
+        <div class="history-content">
+          <div class="history-title">${c.task}</div>
+          <div class="history-target">${c.target}</div>
+          <div class="history-meta">
+            <span>${c.user}</span>
+            <span>·</span>
+            <span>${timeAgo(c.date)}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+}
+
+// ============================================================
+// AGENDA
+// ============================================================
+
+function renderAgenda() {
+  const container = document.getElementById('agendaContent');
+  container.innerHTML = '';
+
+  // Group tasks by deadline day
+  const byDay = {};
+  TASKS.forEach(task => {
+    const deadline = getDeadline(task);
+    const key = deadline.toDateString();
+    if (!byDay[key]) byDay[key] = { date: deadline, tasks: [] };
+    byDay[key].tasks.push(task);
+  });
+
+  const sorted = Object.values(byDay).sort((a, b) => a.date - b.date);
+
+  sorted.forEach(({ date, tasks }) => {
+    const today = isToday(date);
+    const past = date < new Date() && !today;
+
+    container.innerHTML += `
+      <div class="agenda-section ${today ? 'today' : ''} ${past ? 'past' : ''}">
+        <span class="agenda-date">${today ? "Aujourd'hui" : formatDate(date)}</span>
+        <span class="agenda-count">${tasks.length} tâche${tasks.length > 1 ? 's' : ''}</span>
+      </div>
+    `;
+
+    tasks.forEach(task => {
+      const status = getStatus(task);
+      container.innerHTML += `
+        <div class="task-compact" style="border-left-color:${statusColor(status)}" onclick="validateTask('${task.id}')">
+          <div class="task-compact-info">
+            <div class="task-compact-type">${task.type}</div>
+            <div class="task-compact-target">${task.target}</div>
+          </div>
+          <span class="badge badge-${status}" style="font-size:11px; padding:2px 8px;">
+            <span class="badge-dot" style="width:6px;height:6px"></span>
+            ${statusLabel(status)}
+          </span>
+        </div>
+      `;
+    });
+  });
+}
+
+// ============================================================
+// STATS
+// ============================================================
+
+function renderStats() {
+  const container = document.getElementById('statsContent');
+
+  const statuses = TASKS.map(getStatus);
+  const green = statuses.filter(s => s === 'green').length;
+  const orange = statuses.filter(s => s === 'orange').length;
+  const red = statuses.filter(s => s === 'red').length;
+  const total = TASKS.length;
+  const pct = total > 0 ? Math.round((green / total) * 100) : 0;
+
+  // User contributions
+  const contribs = {};
+  COMPLETIONS.forEach(c => {
+    contribs[c.user] = (contribs[c.user] || 0) + 1;
+  });
+  const contribList = Object.entries(contribs).sort((a, b) => b[1] - a[1]);
+  const maxContrib = contribList.length > 0 ? contribList[0][1] : 1;
+
+  container.innerHTML = `
+    <div class="score-card">
+      <div class="score-value">${pct}%</div>
+      <div class="score-label">des tâches à jour</div>
+      <div class="bar-container">
+        ${green > 0 ? `<div class="bar-segment" style="flex:${green}; background:var(--green)"></div>` : ''}
+        ${orange > 0 ? `<div class="bar-segment" style="flex:${orange}; background:var(--orange)"></div>` : ''}
+        ${red > 0 ? `<div class="bar-segment" style="flex:${red}; background:var(--red)"></div>` : ''}
+      </div>
+      <div class="bar-legend">
+        <span style="color:var(--green)">${green} ✓</span>
+        <span style="color:var(--orange)">${orange} ⏳</span>
+        <span style="color:var(--red)">${red} ⚠️</span>
+      </div>
+    </div>
+
+    <div class="metrics-row">
+      <div class="metric-card">
+        <div class="metric-value">${COMPLETIONS.length}</div>
+        <div class="metric-label">Réalisations</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value" style="color:var(--streak)">🔥 12</div>
+        <div class="metric-label">Streak (jours)</div>
+      </div>
+    </div>
+
+    <div class="contrib-section">
+      <div class="contrib-title">Contributions</div>
+      ${contribList.map(([name, count]) => `
+        <div class="contrib-row">
+          <div class="contrib-info">
+            <span class="contrib-name">${name}</span>
+            <span class="contrib-count">${count}</span>
+          </div>
+          <div class="contrib-bar-bg">
+            <div class="contrib-bar-fill" style="width:${(count / maxContrib) * 100}%"></div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// ============================================================
+// ADMIN
+// ============================================================
+
+let adminSection = 'targets';
+
+function renderAdmin() {
+  const container = document.getElementById('adminContent');
+
+  container.innerHTML = `
+    <div class="admin-tabs">
+      <button class="admin-tab ${adminSection === 'targets' ? 'active' : ''}" onclick="setAdminSection('targets')">Cibles</button>
+      <button class="admin-tab ${adminSection === 'tasks' ? 'active' : ''}" onclick="setAdminSection('tasks')">Tâches</button>
+      <button class="admin-tab ${adminSection === 'household' ? 'active' : ''}" onclick="setAdminSection('household')">Foyer</button>
+    </div>
+    <div class="admin-section" id="adminSectionContent"></div>
+  `;
+
+  renderAdminSection();
+}
+
+function setAdminSection(s) {
+  adminSection = s;
+  renderAdmin();
+}
+
+function renderAdminSection() {
+  const container = document.getElementById('adminSectionContent');
+
+  if (adminSection === 'targets') {
+    container.innerHTML = `
+      <div class="admin-section-title">Ajouter une cible</div>
+      <input class="admin-input" placeholder="Nom (ex: Cuisine, Four…)" id="newTargetName">
+      <div class="type-toggle">
+        <button class="type-btn active" onclick="this.classList.add('active');this.nextElementSibling.classList.remove('active')">Zone</button>
+        <button class="type-btn" onclick="this.classList.add('active');this.previousElementSibling.classList.remove('active')">Équipement</button>
+      </div>
+      <button class="admin-add-btn" onclick="addTarget()">+ Ajouter</button>
+      <div class="admin-section-title">Cibles existantes</div>
+      ${TARGETS.map(t => `
+        <div class="admin-list-item">
+          <div>
+            <div class="admin-item-title">${t.name}</div>
+            <div class="admin-item-sub">${t.type}</div>
+          </div>
+          <button class="admin-delete" onclick="deleteTarget('${t.id}')">Supprimer</button>
+        </div>
+      `).join('')}
+    `;
+  } else if (adminSection === 'tasks') {
+    container.innerHTML = `
+      <div class="admin-section-title">Tâches configurées</div>
+      ${TASKS.map(t => `
+        <div class="admin-list-item">
+          <div>
+            <div class="admin-item-title">${t.type} — ${t.target}</div>
+            <div class="admin-item-sub">Tous les ${t.maxDays} jours</div>
+          </div>
+          <span class="badge badge-${getStatus(t)}" style="font-size:11px;padding:2px 8px">
+            <span class="badge-dot" style="width:6px;height:6px"></span>
+            ${statusLabel(getStatus(t))}
+          </span>
+        </div>
+      `).join('')}
+    `;
+  } else {
+    container.innerHTML = `
+      <div class="admin-section-title">Informations</div>
+      <div class="info-card">
+        <div class="info-label">Nom du foyer</div>
+        <div class="info-value">Maison Ramothe</div>
+      </div>
+      <div class="info-card">
+        <div class="info-label">ID (pour inviter)</div>
+        <div class="info-value" style="font-size:11px;word-break:break-all">a1b2c3d4-e5f6-7890-abcd-ef1234567890</div>
+      </div>
+      <div class="info-card">
+        <div class="info-label">Mon profil</div>
+        <div class="info-value">Thibault</div>
+      </div>
+      <div class="info-card">
+        <div class="info-label">Membres</div>
+        <div class="info-value">Thibault, Marie</div>
+      </div>
+    `;
+  }
+}
+
+function addTarget() {
+  const name = document.getElementById('newTargetName').value.trim();
+  if (!name) return;
+  TARGETS.push({
+    id: 't' + Date.now(),
+    name,
+    type: 'zone',
+    x: 50 + Math.random() * 260,
+    y: 50 + Math.random() * 260
+  });
+  showToast(`✓ ${name} ajouté`);
+  renderFloorPlan();
+  renderAdmin();
+}
+
+function deleteTarget(id) {
+  const idx = TARGETS.findIndex(t => t.id === id);
+  if (idx >= 0) {
+    const name = TARGETS[idx].name;
+    TARGETS.splice(idx, 1);
+    TASKS = TASKS.filter(t => t.target !== name);
+    showToast(`${name} supprimé`);
+    renderFloorPlan();
+    renderAdmin();
+  }
+}
+
+// ============================================================
+// INIT
+// ============================================================
+
+renderFloorPlan();
+</script>
+</body>
+</html>
