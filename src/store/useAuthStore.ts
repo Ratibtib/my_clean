@@ -5,18 +5,18 @@ import { Session } from '@supabase/supabase-js';
 
 // Targets matching the hardcoded FloorPlan SVG
 const DEFAULT_TARGETS = [
-  { name: 'Chambre 1', type: 'zone', position_x: 66, position_y: 86 },
-  { name: 'Salle de bain', type: 'zone', position_x: 155, position_y: 60 },
-  { name: 'Cuisine', type: 'zone', position_x: 297, position_y: 60 },
-  { name: 'Entrée', type: 'zone', position_x: 359, position_y: 60 },
-  { name: 'Couloir', type: 'zone', position_x: 155, position_y: 163 },
-  { name: 'Chambre 2', type: 'zone', position_x: 66, position_y: 239 },
-  { name: 'Salon / SAM', type: 'zone', position_x: 260, position_y: 209 },
-  { name: 'Balcon', type: 'zone', position_x: 359, position_y: 269 },
-  { name: 'Four', type: 'equipment', position_x: 278, position_y: 86 },
-  { name: 'Frigo', type: 'equipment', position_x: 316, position_y: 34 },
-  { name: 'Lave-linge', type: 'equipment', position_x: 174, position_y: 30 },
-  { name: 'WC', type: 'equipment', position_x: 142, position_y: 128 },
+  { name: 'Chambre 1', type: 'zone', position_x: 14, position_y: 14, width: 104, height: 144 },
+  { name: 'Salle de bain', type: 'zone', position_x: 122, position_y: 14, width: 66, height: 92 },
+  { name: 'Cuisine', type: 'zone', position_x: 267, position_y: 14, width: 61, height: 92 },
+  { name: 'Entrée', type: 'zone', position_x: 332, position_y: 14, width: 54, height: 92 },
+  { name: 'Couloir', type: 'zone', position_x: 122, position_y: 108, width: 66, height: 110 },
+  { name: 'Chambre 2', type: 'zone', position_x: 14, position_y: 162, width: 104, height: 154 },
+  { name: 'Salon / SAM', type: 'zone', position_x: 192, position_y: 110, width: 136, height: 198 },
+  { name: 'Balcon', type: 'zone', position_x: 332, position_y: 222, width: 54, height: 94 },
+  { name: 'Four', type: 'equipment', position_x: 278, position_y: 86, width: 30, height: 30 },
+  { name: 'Frigo', type: 'equipment', position_x: 316, position_y: 34, width: 30, height: 30 },
+  { name: 'Lave-linge', type: 'equipment', position_x: 174, position_y: 30, width: 30, height: 30 },
+  { name: 'WC', type: 'equipment', position_x: 142, position_y: 128, width: 30, height: 30 },
 ];
 
 interface AuthState {
@@ -109,8 +109,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         household_id: household.id,
         name: t.name,
         type: t.type,
-        position_x: t.position_x,
-        position_y: t.position_y,
+        position_x: t.position_x, width: t.width || 80,
+        position_y: t.position_y, height: t.height || 60,
         parent_id: null,
         icon: null,
       }));
