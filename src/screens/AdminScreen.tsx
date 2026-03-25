@@ -1,35 +1,76 @@
-// ============================================================
-// CHORIFY — Écran Administration
-// ============================================================
-
 import React, { useState, useCallback } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Alert,
+  View, Text, StyleSheet, SafeAreaView, ScrollView,
+  TouchableOpacity, TextInput, Alert, Share, Platform,
 } from 'react-native';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../utils/colors';
 import { useTaskStore } from '../store/useTaskStore';
 import { useHouseholdStore } from '../store/useHouseholdStore';
 import { useAuthStore } from '../store/useAuthStore';
-import { createTarget, deleteTarget } from '../services/tasks';
-import { createTaskDefinition } from '../services/tasks';
-import { Target, TaskType, TargetType } from '../types';
+import { createTarget, deleteTarget, createTaskDefinition } from '../services/tasks';
+import { Target, TargetType } from '../types';
 
-type AdminSection = 'targets' | 'tasks' | 'household';
+type AdminSection = 'household' | 'targets' | 'tasks';
 
 export function AdminScreen() {
-  const [section, setSection] = useState<AdminSection>('targets');
+  const [section, setSection] = useState<AdminSection>('household');
   const { targets, taskTypes, fetchAll } = useTaskStore();
-  const currentHousehold = useHouseholdStore((s) => s.currentHousehold);
-  const profile = useAuthStore((s) => s.profile);
+  const { currentHousehold, createHousehold, joinHousehold, fetchHouseholds } = useHouseholdStore();
+  const { profile, signOut } = useAuthStore();
 
-  // --- Ajouter une cible ---
+  // --- Create household ---
+  const [newHouseholdName, setNewHouseholdName] = useState('');
+  const handleCreateHousehold = useCallback(async () => {
+    if (!profile || !newHouseholdName.trim()) {
+      Alert.alert('Erreur', 'Entrez un nom de foyer.');
+      return;
+    }
+    try {
+      await createHousehold(newHouseholdName.trim(), profile.id);
+      setNewHouseholdName('');
+      Alert.alert('✓ Foyer créé !', 'Vous pouvez maintenant ajouter des cibles et des tâches.');
+    } catch (e: any) {
+      Alert.alert('Erreur', e.message);
+    }
+  }, [newHouseholdName, profile]);
+
+  // --- Join household ---
+  const [joinId, setJoinId] = useState('');
+  const handleJoinHousehold = useCallback(async () => {
+    if (!profile || !joinId.trim()) {
+      Alert.alert('Erreur', 'Collez l\'ID du foyer.');
+      return;
+    }
+    try {
+      await joinHousehold(joinId.trim(), profile.id);
+      setJoinId('');
+      Alert.alert('✓ Vous avez rejoint le foyer !');
+    } catch (e: any) {
+      Alert.alert('Erreur', e.message);
+    }
+  }, [joinId, profile]);
+
+  // --- Share / Invite ---
+  const handleInvite = useCallback(async () => {
+    if (!currentHousehold) return;
+    try {
+      await Share.share({
+        message: `Rejoins mon foyer "${currentHousehold.name}" sur Chorify !\n\nID du foyer :\n${currentHousehold.id}`,
+      });
+    } catch (e) {
+      console.warn('Share error:', e);
+    }
+  }, [currentHousehold]);
+
+  // --- Logout ---
+  const handleLogout = useCallback(() => {
+    Alert.alert('Déconnexion', 'Voulez-vous vous déconnecter ?', [
+      { text: 'Annuler', style: 'cancel' },
+      { text: 'Déconnexion', style: 'destructive', onPress: () => signOut() },
+    ]);
+  }, [signOut]);
+
+  // --- Add target ---
   const [newTargetName, setNewTargetName] = useState('');
   const [newTargetType, setNewTargetType] = useState<TargetType>('zone');
 
@@ -38,20 +79,19 @@ export function AdminScreen() {
       Alert.alert('Erreur', 'Entrez un nom pour la cible.');
       return;
     }
-
     try {
       await createTarget({
         household_id: currentHousehold.id,
         name: newTargetName.trim(),
         type: newTargetType,
         parent_id: null,
-        position_x: 100 + Math.random() * 400,
-        position_y: 100 + Math.random() * 300,
+        position_x: 100 + Math.random() * 200,
+        position_y: 100 + Math.random() * 150,
         icon: null,
       });
       setNewTargetName('');
       await fetchAll(currentHousehold.id);
-      Alert.alert('Succès', 'Cible ajoutée.');
+      Alert.alert('✓ Cible ajoutée');
     } catch (e: any) {
       Alert.alert('Erreur', e.message);
     }
@@ -59,39 +99,33 @@ export function AdminScreen() {
 
   const handleDeleteTarget = useCallback((target: Target) => {
     if (!currentHousehold) return;
-    Alert.alert(
-      'Supprimer',
-      `Supprimer "${target.name}" et toutes ses tâches ?`,
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Supprimer',
-          style: 'destructive',
-          onPress: async () => {
-            await deleteTarget(target.id);
-            await fetchAll(currentHousehold.id);
-          },
+    Alert.alert('Supprimer', `Supprimer "${target.name}" ?`, [
+      { text: 'Annuler', style: 'cancel' },
+      {
+        text: 'Supprimer', style: 'destructive',
+        onPress: async () => {
+          await deleteTarget(target.id);
+          await fetchAll(currentHousehold.id);
         },
-      ]
-    );
+      },
+    ]);
   }, [currentHousehold, fetchAll]);
 
-  // --- Ajouter une tâche ---
+  // --- Add task ---
   const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
   const [selectedTaskTypeId, setSelectedTaskTypeId] = useState<string | null>(null);
   const [maxDays, setMaxDays] = useState('7');
 
   const handleAddTask = useCallback(async () => {
     if (!currentHousehold || !selectedTargetId || !selectedTaskTypeId) {
-      Alert.alert('Erreur', 'Sélectionnez une cible et un type de tâche.');
+      Alert.alert('Erreur', 'Sélectionnez une cible et un type.');
       return;
     }
     const days = parseInt(maxDays, 10);
     if (isNaN(days) || days < 1) {
-      Alert.alert('Erreur', 'Le délai doit être un nombre positif.');
+      Alert.alert('Erreur', 'Délai invalide.');
       return;
     }
-
     try {
       await createTaskDefinition({
         household_id: currentHousehold.id,
@@ -103,165 +137,214 @@ export function AdminScreen() {
       setSelectedTaskTypeId(null);
       setMaxDays('7');
       await fetchAll(currentHousehold.id);
-      Alert.alert('Succès', 'Tâche créée.');
+      Alert.alert('✓ Tâche créée');
     } catch (e: any) {
       Alert.alert('Erreur', e.message);
     }
   }, [currentHousehold, selectedTargetId, selectedTaskTypeId, maxDays, fetchAll]);
 
-  if (!currentHousehold) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centered}>
-          <Text style={styles.emptyText}>Sélectionnez un foyer.</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Administration</Text>
-        <Text style={styles.subtitle}>{currentHousehold.name}</Text>
+    <SafeAreaView style={s.container}>
+      <ScrollView contentContainerStyle={s.content}>
+        {/* Header + Logout */}
+        <View style={s.headerRow}>
+          <View>
+            <Text style={s.title}>Administration</Text>
+            <Text style={s.subtitle}>{profile?.display_name ?? ''}</Text>
+          </View>
+          <TouchableOpacity style={s.logoutBtn} onPress={handleLogout}>
+            <Text style={s.logoutText}>Déconnexion</Text>
+          </TouchableOpacity>
+        </View>
 
-        {/* Onglets */}
-        <View style={styles.tabs}>
-          {(['targets', 'tasks', 'household'] as AdminSection[]).map((s) => (
+        {/* Tabs */}
+        <View style={s.tabs}>
+          {(['household', 'targets', 'tasks'] as AdminSection[]).map((tab) => (
             <TouchableOpacity
-              key={s}
-              style={[styles.tab, section === s && styles.tabActive]}
-              onPress={() => setSection(s)}
+              key={tab}
+              style={[s.tab, section === tab && s.tabActive]}
+              onPress={() => setSection(tab)}
             >
-              <Text style={[styles.tabText, section === s && styles.tabTextActive]}>
-                {s === 'targets' ? 'Cibles' : s === 'tasks' ? 'Tâches' : 'Foyer'}
+              <Text style={[s.tabText, section === tab && s.tabTextActive]}>
+                {tab === 'household' ? 'Foyer' : tab === 'targets' ? 'Cibles' : 'Tâches'}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* === Section Cibles === */}
-        {section === 'targets' && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Ajouter une cible</Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Nom (ex: Cuisine, Four…)"
-              placeholderTextColor={COLORS.textTertiary}
-              value={newTargetName}
-              onChangeText={setNewTargetName}
-            />
-
-            <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>Type :</Text>
-              <TouchableOpacity
-                style={[styles.typeBtn, newTargetType === 'zone' && styles.typeBtnActive]}
-                onPress={() => setNewTargetType('zone')}
-              >
-                <Text style={[styles.typeBtnText, newTargetType === 'zone' && styles.typeBtnTextActive]}>
-                  Zone
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.typeBtn, newTargetType === 'equipment' && styles.typeBtnActive]}
-                onPress={() => setNewTargetType('equipment')}
-              >
-                <Text style={[styles.typeBtnText, newTargetType === 'equipment' && styles.typeBtnTextActive]}>
-                  Équipement
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity style={styles.addBtn} onPress={handleAddTarget}>
-              <Text style={styles.addBtnText}>+ Ajouter</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.sectionTitle}>Cibles existantes</Text>
-            {targets.map((t) => (
-              <View key={t.id} style={styles.listItem}>
-                <View>
-                  <Text style={styles.listItemTitle}>{t.name}</Text>
-                  <Text style={styles.listItemSub}>{t.type}</Text>
+        {/* === FOYER === */}
+        {section === 'household' && (
+          <View style={s.section}>
+            {currentHousehold ? (
+              <>
+                <Text style={s.sectionTitle}>Mon foyer</Text>
+                <View style={s.infoCard}>
+                  <Text style={s.infoLabel}>Nom</Text>
+                  <Text style={s.infoValue}>{currentHousehold.name}</Text>
                 </View>
-                <TouchableOpacity onPress={() => handleDeleteTarget(t)}>
-                  <Text style={styles.deleteText}>Supprimer</Text>
+
+                <TouchableOpacity style={s.inviteBtn} onPress={handleInvite}>
+                  <Text style={s.inviteBtnText}>📤 Inviter un membre</Text>
                 </TouchableOpacity>
-              </View>
-            ))}
-            {targets.length === 0 && (
-              <Text style={styles.noItems}>Aucune cible</Text>
+
+                <View style={s.infoCard}>
+                  <Text style={s.infoLabel}>ID du foyer (pour invitation)</Text>
+                  <Text style={[s.infoValue, { fontSize: 10 }]}>{currentHousehold.id}</Text>
+                </View>
+
+                <View style={s.divider} />
+
+                <Text style={s.sectionTitle}>Rejoindre un autre foyer</Text>
+                <TextInput
+                  style={s.input}
+                  placeholder="Coller l'ID du foyer"
+                  placeholderTextColor={COLORS.textTertiary}
+                  value={joinId}
+                  onChangeText={setJoinId}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity style={s.addBtn} onPress={handleJoinHousehold}>
+                  <Text style={s.addBtnText}>Rejoindre</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={s.sectionTitle}>Créer un foyer</Text>
+                <TextInput
+                  style={s.input}
+                  placeholder="Nom du foyer"
+                  placeholderTextColor={COLORS.textTertiary}
+                  value={newHouseholdName}
+                  onChangeText={setNewHouseholdName}
+                />
+                <TouchableOpacity style={s.addBtn} onPress={handleCreateHousehold}>
+                  <Text style={s.addBtnText}>+ Créer le foyer</Text>
+                </TouchableOpacity>
+
+                <View style={s.divider} />
+
+                <Text style={s.sectionTitle}>Rejoindre un foyer existant</Text>
+                <TextInput
+                  style={s.input}
+                  placeholder="Coller l'ID du foyer"
+                  placeholderTextColor={COLORS.textTertiary}
+                  value={joinId}
+                  onChangeText={setJoinId}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity style={s.addBtn} onPress={handleJoinHousehold}>
+                  <Text style={s.addBtnText}>Rejoindre</Text>
+                </TouchableOpacity>
+              </>
             )}
           </View>
         )}
 
-        {/* === Section Tâches === */}
-        {section === 'tasks' && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Créer une tâche</Text>
-
-            <Text style={styles.fieldLabel}>Cible</Text>
-            <View style={styles.chipRow}>
-              {targets.map((t) => (
-                <TouchableOpacity
-                  key={t.id}
-                  style={[styles.chip, selectedTargetId === t.id && styles.chipActive]}
-                  onPress={() => setSelectedTargetId(t.id)}
-                >
-                  <Text style={[styles.chipText, selectedTargetId === t.id && styles.chipTextActive]}>
-                    {t.name}
-                  </Text>
+        {/* === CIBLES === */}
+        {section === 'targets' && (
+          <View style={s.section}>
+            {!currentHousehold ? (
+              <Text style={s.noItems}>Créez d'abord un foyer dans l'onglet Foyer.</Text>
+            ) : (
+              <>
+                <Text style={s.sectionTitle}>Ajouter une cible</Text>
+                <TextInput
+                  style={s.input}
+                  placeholder="Nom (ex: Bureau, Terrasse…)"
+                  placeholderTextColor={COLORS.textTertiary}
+                  value={newTargetName}
+                  onChangeText={setNewTargetName}
+                />
+                <View style={s.typeToggle}>
+                  <TouchableOpacity
+                    style={[s.typeBtn, newTargetType === 'zone' && s.typeBtnActive]}
+                    onPress={() => setNewTargetType('zone')}
+                  >
+                    <Text style={[s.typeBtnText, newTargetType === 'zone' && s.typeBtnTextActive]}>Zone</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[s.typeBtn, newTargetType === 'equipment' && s.typeBtnActive]}
+                    onPress={() => setNewTargetType('equipment')}
+                  >
+                    <Text style={[s.typeBtnText, newTargetType === 'equipment' && s.typeBtnTextActive]}>Équipement</Text>
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity style={s.addBtn} onPress={handleAddTarget}>
+                  <Text style={s.addBtnText}>+ Ajouter</Text>
                 </TouchableOpacity>
-              ))}
-            </View>
 
-            <Text style={styles.fieldLabel}>Type de tâche</Text>
-            <View style={styles.chipRow}>
-              {taskTypes.map((tt) => (
-                <TouchableOpacity
-                  key={tt.id}
-                  style={[styles.chip, selectedTaskTypeId === tt.id && styles.chipActive]}
-                  onPress={() => setSelectedTaskTypeId(tt.id)}
-                >
-                  <Text style={[styles.chipText, selectedTaskTypeId === tt.id && styles.chipTextActive]}>
-                    {tt.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <Text style={styles.fieldLabel}>Délai max (jours)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="7"
-              placeholderTextColor={COLORS.textTertiary}
-              value={maxDays}
-              onChangeText={setMaxDays}
-              keyboardType="number-pad"
-            />
-
-            <TouchableOpacity style={styles.addBtn} onPress={handleAddTask}>
-              <Text style={styles.addBtnText}>+ Créer la tâche</Text>
-            </TouchableOpacity>
+                <Text style={s.sectionTitle}>Cibles existantes ({targets.length})</Text>
+                {targets.map((t) => (
+                  <View key={t.id} style={s.listItem}>
+                    <View>
+                      <Text style={s.listItemTitle}>{t.name}</Text>
+                      <Text style={s.listItemSub}>{t.type === 'zone' ? '📍 Zone' : '⚙️ Équipement'}</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => handleDeleteTarget(t)}>
+                      <Text style={s.deleteText}>Supprimer</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                {targets.length === 0 && <Text style={s.noItems}>Aucune cible</Text>}
+              </>
+            )}
           </View>
         )}
 
-        {/* === Section Foyer === */}
-        {section === 'household' && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Informations</Text>
-            <View style={styles.infoCard}>
-              <Text style={styles.infoLabel}>Nom du foyer</Text>
-              <Text style={styles.infoValue}>{currentHousehold.name}</Text>
-            </View>
-            <View style={styles.infoCard}>
-              <Text style={styles.infoLabel}>ID (pour inviter)</Text>
-              <Text style={[styles.infoValue, { fontSize: 11 }]}>{currentHousehold.id}</Text>
-            </View>
-            <View style={styles.infoCard}>
-              <Text style={styles.infoLabel}>Mon profil</Text>
-              <Text style={styles.infoValue}>{profile?.display_name ?? '—'}</Text>
-            </View>
+        {/* === TÂCHES === */}
+        {section === 'tasks' && (
+          <View style={s.section}>
+            {!currentHousehold ? (
+              <Text style={s.noItems}>Créez d'abord un foyer dans l'onglet Foyer.</Text>
+            ) : (
+              <>
+                <Text style={s.sectionTitle}>Créer une tâche</Text>
+
+                <Text style={s.fieldLabel}>Cible</Text>
+                <View style={s.chipRow}>
+                  {targets.map((t) => (
+                    <TouchableOpacity
+                      key={t.id}
+                      style={[s.chip, selectedTargetId === t.id && s.chipActive]}
+                      onPress={() => setSelectedTargetId(t.id)}
+                    >
+                      <Text style={[s.chipText, selectedTargetId === t.id && s.chipTextActive]}>
+                        {t.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={s.fieldLabel}>Type de tâche</Text>
+                <View style={s.chipRow}>
+                  {taskTypes.map((tt) => (
+                    <TouchableOpacity
+                      key={tt.id}
+                      style={[s.chip, selectedTaskTypeId === tt.id && s.chipActive]}
+                      onPress={() => setSelectedTaskTypeId(tt.id)}
+                    >
+                      <Text style={[s.chipText, selectedTaskTypeId === tt.id && s.chipTextActive]}>
+                        {tt.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={s.fieldLabel}>Délai max (jours)</Text>
+                <TextInput
+                  style={s.input}
+                  placeholder="7"
+                  placeholderTextColor={COLORS.textTertiary}
+                  value={maxDays}
+                  onChangeText={setMaxDays}
+                  keyboardType="number-pad"
+                />
+
+                <TouchableOpacity style={s.addBtn} onPress={handleAddTask}>
+                  <Text style={s.addBtnText}>+ Créer la tâche</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         )}
       </ScrollView>
@@ -269,97 +352,44 @@ export function AdminScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  content: { padding: SPACING.lg, paddingBottom: SPACING.xxl * 2 },
+  content: { padding: SPACING.lg, paddingBottom: 120 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: SPACING.md },
   title: { fontSize: 24, fontWeight: '900', color: COLORS.text, letterSpacing: -0.5 },
-  subtitle: { fontSize: 14, color: COLORS.textSecondary, marginTop: 2, marginBottom: SPACING.md },
-
-  tabs: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.surfaceAlt,
-    borderRadius: RADIUS.md,
-    padding: 3,
-    marginBottom: SPACING.lg,
-  },
+  subtitle: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
+  logoutBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: RADIUS.full, borderWidth: 1, borderColor: COLORS.red },
+  logoutText: { fontSize: 12, fontWeight: '600', color: COLORS.red },
+  tabs: { flexDirection: 'row', backgroundColor: COLORS.surfaceAlt, borderRadius: RADIUS.md, padding: 3, marginBottom: SPACING.lg },
   tab: { flex: 1, paddingVertical: SPACING.sm, alignItems: 'center', borderRadius: RADIUS.sm },
   tabActive: { backgroundColor: COLORS.surface, ...SHADOWS.sm },
-  tabText: { fontSize: 14, fontWeight: '600', color: COLORS.textTertiary },
+  tabText: { fontSize: 13, fontWeight: '600', color: COLORS.textTertiary },
   tabTextActive: { color: COLORS.text },
-
-  section: { gap: SPACING.md },
-  sectionTitle: { fontSize: 18, fontWeight: '800', color: COLORS.text, marginTop: SPACING.sm },
-  fieldLabel: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary, marginTop: SPACING.sm },
-
-  input: {
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: RADIUS.md,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm + 2,
-    fontSize: 15,
-    color: COLORS.text,
-  },
-
-  switchRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
-  switchLabel: { fontSize: 14, fontWeight: '600', color: COLORS.text },
-  typeBtn: {
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    borderRadius: RADIUS.full,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
+  section: { gap: SPACING.sm },
+  sectionTitle: { fontSize: 17, fontWeight: '800', color: COLORS.text, marginTop: SPACING.sm, marginBottom: SPACING.xs },
+  fieldLabel: { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary, marginTop: SPACING.sm },
+  input: { backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm + 2, fontSize: 14, color: COLORS.text },
+  typeToggle: { flexDirection: 'row', gap: SPACING.sm },
+  typeBtn: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, borderRadius: RADIUS.full, borderWidth: 1, borderColor: COLORS.border },
   typeBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  typeBtnText: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
+  typeBtnText: { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary },
   typeBtnTextActive: { color: COLORS.surface },
-
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs },
-  chip: {
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.surfaceAlt,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
+  chip: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, borderRadius: RADIUS.full, backgroundColor: COLORS.surfaceAlt, borderWidth: 1, borderColor: COLORS.border },
   chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  chipText: { fontSize: 13, fontWeight: '500', color: COLORS.text },
+  chipText: { fontSize: 12, fontWeight: '500', color: COLORS.text },
   chipTextActive: { color: COLORS.surface },
-
-  addBtn: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: SPACING.md,
-    borderRadius: RADIUS.md,
-    alignItems: 'center',
-    ...SHADOWS.md,
-  },
-  addBtnText: { color: COLORS.surface, fontSize: 15, fontWeight: '700' },
-
-  listItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    padding: SPACING.md,
-    borderRadius: RADIUS.md,
-    ...SHADOWS.sm,
-  },
-  listItemTitle: { fontSize: 15, fontWeight: '600', color: COLORS.text },
-  listItemSub: { fontSize: 12, color: COLORS.textTertiary, marginTop: 1 },
-  deleteText: { fontSize: 13, fontWeight: '600', color: COLORS.red },
-  noItems: { fontSize: 14, color: COLORS.textTertiary, textAlign: 'center', padding: SPACING.lg },
-
-  infoCard: {
-    backgroundColor: COLORS.surface,
-    padding: SPACING.md,
-    borderRadius: RADIUS.md,
-    ...SHADOWS.sm,
-  },
-  infoLabel: { fontSize: 12, color: COLORS.textTertiary, fontWeight: '500' },
-  infoValue: { fontSize: 16, fontWeight: '700', color: COLORS.text, marginTop: 2 },
-
-  emptyText: { fontSize: 14, color: COLORS.textSecondary },
+  addBtn: { backgroundColor: COLORS.primary, paddingVertical: SPACING.md, borderRadius: RADIUS.md, alignItems: 'center', ...SHADOWS.md, marginTop: SPACING.xs },
+  addBtnText: { color: COLORS.surface, fontSize: 14, fontWeight: '700' },
+  inviteBtn: { backgroundColor: COLORS.streakLight, paddingVertical: SPACING.md, borderRadius: RADIUS.md, alignItems: 'center', marginVertical: SPACING.xs },
+  inviteBtnText: { color: COLORS.streak, fontSize: 14, fontWeight: '700' },
+  listItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: COLORS.surface, padding: SPACING.md, borderRadius: RADIUS.md, ...SHADOWS.sm },
+  listItemTitle: { fontSize: 14, fontWeight: '600', color: COLORS.text },
+  listItemSub: { fontSize: 11, color: COLORS.textTertiary, marginTop: 1 },
+  deleteText: { fontSize: 12, fontWeight: '600', color: COLORS.red },
+  noItems: { fontSize: 13, color: COLORS.textTertiary, textAlign: 'center', padding: SPACING.lg },
+  infoCard: { backgroundColor: COLORS.surface, padding: SPACING.md, borderRadius: RADIUS.md, ...SHADOWS.sm },
+  infoLabel: { fontSize: 11, color: COLORS.textTertiary, fontWeight: '500' },
+  infoValue: { fontSize: 15, fontWeight: '700', color: COLORS.text, marginTop: 2 },
+  divider: { height: 1, backgroundColor: COLORS.border, marginVertical: SPACING.md },
 });
