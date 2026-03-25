@@ -20,7 +20,7 @@ interface AuthState {
   ensureProfile: (userId: string, email: string, displayName: string) => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useHouseholdStore  = create<AuthState>((set, get) => ({
   session: null,
   profile: null,
   loading: true,
