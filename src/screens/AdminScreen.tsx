@@ -12,7 +12,7 @@ import { Target, TargetType } from '../types';
 
 type AdminSection = 'household' | 'targets' | 'tasks';
 
-export function AdminScreen() {
+export function AdminScreen({ navigation }: any) {
   const [section, setSection] = useState<AdminSection>('household');
   const { targets, taskTypes, fetchAll } = useTaskStore();
   const { currentHousehold, createHousehold, joinHousehold, fetchHouseholds } = useHouseholdStore();
@@ -185,6 +185,10 @@ export function AdminScreen() {
 
                 <TouchableOpacity style={s.inviteBtn} onPress={handleInvite}>
                   <Text style={s.inviteBtnText}>📤 Inviter un membre</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[s.inviteBtn, { backgroundColor: "#F5F5F4" }]} onPress={() => navigation?.navigate?.("PlanEditor")}>
+                  <Text style={[s.inviteBtnText, { color: "#1C1917" }]}>🏠 Modifier le plan</Text>
                 </TouchableOpacity>
 
                 <View style={s.infoCard}>
