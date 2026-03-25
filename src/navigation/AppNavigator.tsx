@@ -1,7 +1,3 @@
-// ============================================================
-// CHORIFY — Navigation
-// ============================================================
-
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -9,7 +5,6 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text, View, StyleSheet } from 'react-native';
 
 import { COLORS } from '../utils/colors';
-import { RootStackParamList, RootTabParamList } from '../types';
 
 import { AuthScreen } from '../screens/AuthScreen';
 import { FloorPlanScreen } from '../screens/FloorPlanScreen';
@@ -22,8 +17,8 @@ import { AdminScreen } from '../screens/AdminScreen';
 import { useAuthStore } from '../store/useAuthStore';
 import { useRealtime } from '../hooks/useRealtime';
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
-const Tab = createBottomTabNavigator<RootTabParamList>();
+const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
 
 function TabIcon({ label, focused }: { label: string; focused: boolean }) {
   const icons: Record<string, string> = {
@@ -32,6 +27,7 @@ function TabIcon({ label, focused }: { label: string; focused: boolean }) {
     Historique: '🕐',
     Agenda: '📅',
     Stats: '📊',
+    Admin: '⚙️',
   };
   return (
     <View style={tabStyles.iconContainer}>
@@ -49,21 +45,21 @@ const tabStyles = StyleSheet.create({
 });
 
 function MainTabs() {
-  // Realtime activé ICI — seulement après authentification
   useRealtime();
 
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarIcon: ({ focused }) => (
-          <TabIcon label={
+        tabBarIcon: ({ focused }) => {
+          const label =
             route.name === 'FloorPlan' ? 'Plan' :
             route.name === 'TaskList' ? 'Tâches' :
             route.name === 'History' ? 'Historique' :
-            route.name === 'Agenda' ? 'Agenda' : 'Stats'
-          } focused={focused} />
-        ),
+            route.name === 'Agenda' ? 'Agenda' :
+            route.name === 'Stats' ? 'Stats' : 'Admin';
+          return <TabIcon label={label} focused={focused} />;
+        },
         tabBarActiveTintColor: COLORS.text,
         tabBarInactiveTintColor: COLORS.textTertiary,
         tabBarStyle: {
@@ -80,12 +76,13 @@ function MainTabs() {
       <Tab.Screen name="History" component={HistoryScreen} options={{ tabBarLabel: 'Historique' }} />
       <Tab.Screen name="Agenda" component={AgendaScreen} options={{ tabBarLabel: 'Agenda' }} />
       <Tab.Screen name="Stats" component={StatsScreen} options={{ tabBarLabel: 'Stats' }} />
+      <Tab.Screen name="Admin" component={AdminScreen} options={{ tabBarLabel: 'Admin' }} />
     </Tab.Navigator>
   );
 }
 
 export function AppNavigator() {
-  const session = useAuthStore((s) => s.session);
+  const session = useAuthStore((s: any) => s.session);
 
   return (
     <NavigationContainer>
@@ -93,20 +90,7 @@ export function AppNavigator() {
         {!session ? (
           <Stack.Screen name="Auth" component={AuthScreen} />
         ) : (
-          <>
-            <Stack.Screen name="Main" component={MainTabs} />
-            <Stack.Screen
-              name="Admin"
-              component={AdminScreen}
-              options={{
-                headerShown: true,
-                headerTitle: 'Administration',
-                headerBackTitle: 'Retour',
-                headerTintColor: COLORS.text,
-                headerStyle: { backgroundColor: COLORS.bg },
-              }}
-            />
-          </>
+          <Stack.Screen name="Main" component={MainTabs} />
         )}
       </Stack.Navigator>
     </NavigationContainer>
