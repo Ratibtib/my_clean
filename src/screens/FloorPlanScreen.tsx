@@ -1,28 +1,27 @@
-// ============================================================
-// CHORIFY — Écran Plan Interactif (Principal)
-// ============================================================
-
 import React, { useEffect, useCallback } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  RefreshControl,
-  ScrollView,
-  ActivityIndicator,
+  View, Text, StyleSheet, SafeAreaView,
+  RefreshControl, ScrollView, ActivityIndicator, TouchableOpacity,
 } from 'react-native';
-import { COLORS, SPACING } from '../utils/colors';
+import { COLORS, SPACING, RADIUS, SHADOWS } from '../utils/colors';
 import { FloorPlan } from '../components/FloorPlan';
 import { StreakBanner } from '../components/StreakBanner';
 import { useTaskStore } from '../store/useTaskStore';
 import { useHouseholdStore } from '../store/useHouseholdStore';
 import { useStreakStore } from '../store/useStreakStore';
+import { useAuthStore } from '../store/useAuthStore';
 
-export function FloorPlanScreen() {
+export function FloorPlanScreen({ navigation }: any) {
   const { loading, refreshing, fetchAll, refresh } = useTaskStore();
-  const currentHousehold = useHouseholdStore((s) => s.currentHousehold);
-  const fetchStreak = useStreakStore((s) => s.fetchStreak);
+  const { currentHousehold, fetchHouseholds } = useHouseholdStore();
+  const fetchStreak = useStreakStore((s: any) => s.fetchStreak);
+  const profile = useAuthStore((s: any) => s.profile);
+
+  useEffect(() => {
+    if (profile?.id) {
+      fetchHouseholds(profile.id);
+    }
+  }, [profile]);
 
   useEffect(() => {
     if (currentHousehold) {
@@ -32,16 +31,17 @@ export function FloorPlanScreen() {
   }, [currentHousehold]);
 
   const handleRefresh = useCallback(() => {
+    if (profile?.id) fetchHouseholds(profile.id);
     if (currentHousehold) {
       refresh(currentHousehold.id);
       fetchStreak(currentHousehold.id);
     }
-  }, [currentHousehold]);
+  }, [currentHousehold, profile]);
 
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
+        <View style={styles.centered}>
           <ActivityIndicator size="large" color={COLORS.primary} />
           <Text style={styles.loadingText}>Chargement…</Text>
         </View>
@@ -52,12 +52,22 @@ export function FloorPlanScreen() {
   if (!currentHousehold) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>🏠</Text>
-          <Text style={styles.emptyTitle}>Aucun foyer</Text>
-          <Text style={styles.emptySubtitle}>
-            Créez ou rejoignez un foyer dans les paramètres.
+        <View style={styles.centered}>
+          <Text style={{ fontSize: 48, marginBottom: 16 }}>🏠</Text>
+          <Text style={{ fontSize: 20, fontWeight: '700', color: COLORS.text, marginBottom: 8 }}>
+            Bienvenue sur Chorify !
           </Text>
+          <Text style={{ fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', paddingHorizontal: 32, marginBottom: 24 }}>
+            Pour commencer, créez votre foyer ou rejoignez-en un dans l'onglet Admin.
+          </Text>
+          <TouchableOpacity
+            style={{ backgroundColor: COLORS.primary, paddingHorizontal: 32, paddingVertical: 14, borderRadius: RADIUS.md }}
+            onPress={() => navigation?.navigate?.('Admin')}
+          >
+            <Text style={{ color: COLORS.surface, fontWeight: '700', fontSize: 15 }}>
+              ⚙️ Aller dans Admin
+            </Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -65,27 +75,16 @@ export function FloorPlanScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.householdName}>{currentHousehold.name}</Text>
-          <Text style={styles.headerSubtitle}>Touchez une pièce pour agir</Text>
-        </View>
+        <Text style={styles.householdName}>{currentHousehold.name}</Text>
+        <Text style={styles.headerSubtitle}>Touchez une pièce pour agir</Text>
       </View>
-
-      {/* Streak */}
       <StreakBanner />
-
-      {/* Plan */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={COLORS.primary}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={COLORS.primary} />
         }
       >
         <FloorPlan />
@@ -95,65 +94,12 @@ export function FloorPlanScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.bg,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.sm,
-  },
-  householdName: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: COLORS.text,
-    letterSpacing: -0.5,
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: SPACING.xs,
-    paddingBottom: SPACING.xxl,
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACING.md,
-  },
-  loadingText: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: SPACING.xl,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: SPACING.md,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.text,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginTop: SPACING.sm,
-  },
+  container: { flex: 1, backgroundColor: COLORS.bg },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  header: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.md, paddingBottom: SPACING.sm },
+  householdName: { fontSize: 24, fontWeight: '900', color: COLORS.text, letterSpacing: -0.5 },
+  headerSubtitle: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
+  scrollView: { flex: 1 },
+  scrollContent: { paddingHorizontal: SPACING.xs, paddingBottom: SPACING.xxl },
+  loadingText: { fontSize: 14, color: COLORS.textSecondary, marginTop: 12 },
 });
