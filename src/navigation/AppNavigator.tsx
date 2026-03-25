@@ -2,7 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text, View, StyleSheet } from 'react-native';
+import { Text, View } from 'react-native';
 import { COLORS } from '../utils/colors';
 import { AuthScreen } from '../screens/AuthScreen';
 import { FloorPlanScreen } from '../screens/FloorPlanScreen';
@@ -11,6 +11,7 @@ import { HistoryScreen } from '../screens/HistoryScreen';
 import { AgendaScreen } from '../screens/AgendaScreen';
 import { StatsScreen } from '../screens/StatsScreen';
 import { AdminScreen } from '../screens/AdminScreen';
+import { PlanEditorScreen } from '../screens/PlanEditorScreen';
 import { useAuthStore } from '../store/useAuthStore';
 import { useRealtime } from '../hooks/useRealtime';
 
@@ -75,7 +76,10 @@ export function AppNavigator() {
         {!session ? (
           <Stack.Screen name="Auth" component={AuthScreen} />
         ) : (
-          <Stack.Screen name="Main" component={MainTabs} />
+          <>
+            <Stack.Screen name="Main" component={MainTabs} />
+            <Stack.Screen name="PlanEditor" component={PlanEditorScreen} />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>
