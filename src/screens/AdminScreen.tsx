@@ -80,13 +80,15 @@ export function AdminScreen({ navigation }: any) {
       return;
     }
     try {
-      await createTarget({
+     await createTarget({
         household_id: currentHousehold.id,
         name: newTargetName.trim(),
         type: newTargetType,
         parent_id: null,
         position_x: 100 + Math.random() * 200,
         position_y: 100 + Math.random() * 150,
+        width: newTargetType === 'zone' ? 80 : 30,
+        height: newTargetType === 'zone' ? 60 : 30,
         icon: null,
       });
       setNewTargetName('');
