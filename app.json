@@ -11,12 +11,16 @@
       "resizeMode": "contain",
       "backgroundColor": "#FAFAF9"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.chorify.app",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -25,7 +29,12 @@
         "backgroundColor": "#FAFAF9"
       },
       "package": "com.chorify.app",
-      "permissions": ["RECEIVE_BOOT_COMPLETED", "VIBRATE", "INTERNET", "ACCESS_NETWORK_STATE"],
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ],
       "usesCleartextTraffic": true
     },
     "plugins": [
@@ -33,8 +42,7 @@
         "expo-build-properties",
         {
           "android": {
-            "kotlinVersion": "1.9.25",
-            "networkSecurityConfig": "./network_security_config.xml"
+            "kotlinVersion": "1.9.25"
           }
         }
       ],
