@@ -1,117 +1,119 @@
 // ============================================================
-// CHORIFY — Store Foyer (Zustand)
+// CHORIFY — Store Auth (Zustand)
 // ============================================================
 
 import { create } from 'zustand';
 import { supabase } from '../services/supabase';
-import { Household, HouseholdMembership } from '../types';
+import { Profile } from '../types';
+import { Session } from '@supabase/supabase-js';
 
-interface HouseholdState {
-  households: Household[];
-  currentHousehold: Household | null;
-  members: HouseholdMembership[];
+interface AuthState {
+  session: Session | null;
+  profile: Profile | null;
   loading: boolean;
 
-  fetchHouseholds: (userId: string) => Promise<void>;
-  setCurrentHousehold: (household: Household) => void;
-  fetchMembers: (householdId: string) => Promise<void>;
-  createHousehold: (name: string, userId: string) => Promise<Household>;
-  joinHousehold: (householdId: string, userId: string) => Promise<void>;
+  initialize: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, displayName: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  fetchProfile: () => Promise<void>;
+  ensureProfile: (userId: string, email: string, displayName: string) => Promise<void>;
 }
 
-export const useHouseholdStore = create<HouseholdState>((set, get) => ({
-  households: [],
-  currentHousehold: null,
-  members: [],
-  loading: false,
+export const useAuthStore = create<AuthState>((set, get) => ({
+  session: null,
+  profile: null,
+  loading: true,
 
-  fetchHouseholds: async (userId) => {
-    set({ loading: true });
+  initialize: async () => {
     try {
-      const { data, error } = await supabase
-        .from('household_memberships')
-        .select('*, household:households(*)')
-        .eq('user_id', userId);
+      const { data: { session } } = await supabase.auth.getSession();
+      set({ session });
 
-      if (error) {
-        console.warn('Fetch households error:', error);
-        return;
+      if (session?.user) {
+        await get().fetchProfile();
       }
 
-      const households = (data ?? [])
-        .map((m: any) => m?.household)
-        .filter(Boolean) as Household[];
-
-      set({ households });
-
-      if (!get().currentHousehold && households.length > 0) {
-        set({ currentHousehold: households[0] });
-      }
+      supabase.auth.onAuthStateChange(async (_event, session) => {
+        set({ session });
+        if (session?.user) {
+          await get().fetchProfile();
+        } else {
+          set({ profile: null });
+        }
+      });
     } catch (e) {
-      console.warn('Fetch households error:', e);
+      console.warn('Auth init error:', e);
     } finally {
       set({ loading: false });
     }
   },
 
-  setCurrentHousehold: (household) => {
-    set({ currentHousehold: household });
+  signIn: async (email, password) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
   },
 
-  fetchMembers: async (householdId) => {
-    try {
-      const { data, error } = await supabase
-        .from('household_memberships')
-        .select('*, profile:profiles(*)')
-        .eq('household_id', householdId);
+  signUp: async (email, password, displayName) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { display_name: displayName } },
+    });
+    if (error) throw error;
 
-      if (error) {
-        console.warn('Fetch members error:', error);
-        return;
-      }
-      set({ members: data ?? [] });
-    } catch (e) {
-      console.warn('Fetch members error:', e);
+    // Create profile manually (backup if trigger fails)
+    if (data?.user) {
+      await get().ensureProfile(data.user.id, email, displayName);
     }
   },
 
-  createHousehold: async (name, userId) => {
-    const { data: household, error: hError } = await supabase
-      .from('households')
-      .insert({ name })
-      .select()
-      .single();
+  ensureProfile: async (userId, email, displayName) => {
+    try {
+      // Check if profile already exists (trigger may have created it)
+      const { data: existing } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .single();
 
-    if (hError) throw hError;
-
-    const { error: mError } = await supabase
-      .from('household_memberships')
-      .insert({
-        user_id: userId,
-        household_id: household.id,
-        role: 'admin',
-      });
-
-    if (mError) throw mError;
-
-    set((state) => ({
-      households: [...state.households, household],
-      currentHousehold: household,
-    }));
-
-    return household;
+      if (!existing) {
+        // Create profile if trigger didn't
+        await supabase.from('profiles').insert({
+          id: userId,
+          email: email,
+          display_name: displayName,
+        });
+      }
+    } catch (e) {
+      // Profile might already exist from trigger — that's fine
+      console.warn('Profile ensure:', e);
+    }
   },
 
-  joinHousehold: async (householdId, userId) => {
-    const { error } = await supabase
-      .from('household_memberships')
-      .insert({
-        user_id: userId,
-        household_id: householdId,
-        role: 'member',
-      });
+  signOut: async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn('Sign out error:', e);
+    }
+    set({ session: null, profile: null });
+  },
 
-    if (error) throw error;
-    await get().fetchHouseholds(userId);
+  fetchProfile: async () => {
+    try {
+      const userId = get().session?.user?.id;
+      if (!userId) return;
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (data) set({ profile: data });
+    } catch (e) {
+      console.warn('Profile fetch error:', e);
+    }
   },
 }));
