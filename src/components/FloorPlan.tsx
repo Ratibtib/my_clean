@@ -4,7 +4,7 @@ import {
   RefreshControl, ScrollView, ActivityIndicator, TouchableOpacity,
 } from 'react-native';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../utils/colors';
-import { FloorPlan } from '../components/FloorPlan';
+import { QuickValidate } from './QuickValidate';
 import { StreakBanner } from '../components/StreakBanner';
 import { useTaskStore } from '../store/useTaskStore';
 import { useHouseholdStore } from '../store/useHouseholdStore';
