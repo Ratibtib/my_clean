@@ -126,7 +126,7 @@ export function PlanEditorScreen({ navigation }: any) {
         parent_id: parentId,
         isNew: true,
       };
-      setPendingItem({ ...newItem, parent_id: parentZone.name } as any);
+      setPendingItem({ ...newItem, parent_id: parentZone.name as any });
       setNewName('');
       setShowNameModal(true);
     } else if (mode === 'delete') {
