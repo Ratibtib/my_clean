@@ -1,12 +1,6 @@
-// ============================================================
-// CHORIFY — Types TypeScript
-// ============================================================
-
 export type TaskStatus = 'green' | 'orange' | 'red';
 export type TargetType = 'zone' | 'equipment';
 export type MemberRole = 'admin' | 'member';
-
-// ---------- Entités de base ----------
 
 export interface Household {
   id: string;
@@ -28,7 +22,6 @@ export interface HouseholdMembership {
   household_id: string;
   role: MemberRole;
   joined_at: string;
-  // Jointures
   profile?: Profile;
   household?: Household;
 }
@@ -41,9 +34,10 @@ export interface Target {
   parent_id: string | null;
   position_x: number;
   position_y: number;
+  width: number;
+  height: number;
   icon: string | null;
   created_at: string;
-  // Relations
   children?: Target[];
 }
 
@@ -60,7 +54,6 @@ export interface TaskDefinition {
   target_id: string;
   max_interval_days: number;
   created_at: string;
-  // Jointures
   task_type?: TaskType;
   target?: Target;
 }
@@ -70,12 +63,9 @@ export interface TaskCompletion {
   task_definition_id: string;
   user_id: string;
   completed_at: string;
-  // Jointures
   profile?: Profile;
   task_definition?: TaskDefinition;
 }
-
-// ---------- Vue enrichie ----------
 
 export interface TaskStatusView {
   task_definition_id: string;
@@ -89,13 +79,13 @@ export interface TaskStatusView {
   target_parent_id: string | null;
   position_x: number;
   position_y: number;
+  target_width: number;
+  target_height: number;
   last_completed_at: string | null;
   last_completed_by: string | null;
   progress_ratio: number;
   status: TaskStatus;
 }
-
-// ---------- Stats ----------
 
 export interface UserContribution {
   display_name: string;
@@ -111,19 +101,17 @@ export interface HouseholdStats {
   user_contributions: UserContribution[] | null;
 }
 
-// ---------- Navigation ----------
-
 export type RootTabParamList = {
   FloorPlan: undefined;
   TaskList: undefined;
   History: undefined;
   Agenda: undefined;
   Stats: undefined;
+  Admin: undefined;
 };
 
 export type RootStackParamList = {
   Auth: undefined;
   Main: undefined;
-  Admin: undefined;
-  QuickValidate: { taskDefinitionId: string };
+  PlanEditor: undefined;
 };
