@@ -25,14 +25,16 @@
         "backgroundColor": "#FAFAF9"
       },
       "package": "com.chorify.app",
-      "permissions": ["RECEIVE_BOOT_COMPLETED", "VIBRATE"]
+      "permissions": ["RECEIVE_BOOT_COMPLETED", "VIBRATE", "INTERNET", "ACCESS_NETWORK_STATE"],
+      "usesCleartextTraffic": true
     },
     "plugins": [
       [
         "expo-build-properties",
         {
           "android": {
-            "kotlinVersion": "1.9.25"
+            "kotlinVersion": "1.9.25",
+            "networkSecurityConfig": "./network_security_config.xml"
           }
         }
       ],
