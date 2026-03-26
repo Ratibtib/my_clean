@@ -124,8 +124,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingTop: 8,
     paddingBottom: 32,
-    minHeight: SCREEN_HEIGHT * 0.45,
-    maxHeight: SCREEN_HEIGHT * 0.85,
+    minHeight: SCREEN_HEIGHT * 0.3,
+    maxHeight: SCREEN_HEIGHT * 0.55,
   },
   handle: {
     width: 36, height: 4,
