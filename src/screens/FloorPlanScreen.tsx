@@ -96,7 +96,7 @@ export function FloorPlanScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.md, paddingBottom: SPACING.sm },
+  header: { paddingHorizontal: SPACING.lg, paddingTop: 48, paddingBottom: SPACING.sm },
   householdName: { fontSize: 24, fontWeight: '900', color: COLORS.text, letterSpacing: -0.5 },
   headerSubtitle: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
   scrollView: { flex: 1 },
