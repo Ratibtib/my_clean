@@ -260,7 +260,7 @@ export function PlanEditorScreen({ navigation }: any) {
       const toInsert = items.filter((i) => !i.toDelete && i.isNew);
       for (const item of toInsert) {
         // Resolve parent_id for equipment
-        let parentId = null;
+        let parentId: string | null = null;
         if (item.type === 'equipment') {
           const parentZone = findZoneAt(item.x, item.y);
           if (parentZone?.id) parentId = parentZone.id;
