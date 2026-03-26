@@ -194,7 +194,7 @@ export function PlanEditorScreen({ navigation }: any) {
     if (finalItem.type === 'equipment') {
       // Find the actual parent zone
       const parentZone = findZoneAt(finalItem.x, finalItem.y);
-      finalItem.parent_id = parentZone?.id || null;
+      (finalItem as any).parent_id = parentZone?.id || null;
     }
 
     setItems((prev) => [...prev, finalItem]);
