@@ -1,0 +1,17 @@
+{
+  "name": "Chorify Widget",
+  "short_name": "Chorify",
+  "description": "Aperçu rapide des tâches ménagères",
+  "start_url": "/my_clean/widget.html",
+  "display": "standalone",
+  "background_color": "#FAFAF9",
+  "theme_color": "#FAFAF9",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/my_clean/assets/icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
