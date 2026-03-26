@@ -1,23 +1,17 @@
-// ============================================================
-// CHORIFY — Composant QuickValidate (Bottom Sheet)
-// ============================================================
-
 import React, { useCallback } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  FlatList,
-  Vibration,
-  Alert,
+  View, Text, StyleSheet, TouchableOpacity,
+  FlatList, Vibration, Alert, Dimensions,
 } from 'react-native';
 import { TaskStatusView } from '../types';
-import { COLORS, SPACING, RADIUS, SHADOWS, STATUS_COLORS } from '../utils/colors';
+import { COLORS, SPACING, RADIUS, STATUS_COLORS } from '../utils/colors';
 import { getStatusLabel } from '../utils/status';
+import { timeAgo } from '../utils/dates';
 import { useTaskStore } from '../store/useTaskStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useHouseholdStore } from '../store/useHouseholdStore';
+
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 interface QuickValidateProps {
   targetId: string;
@@ -26,19 +20,15 @@ interface QuickValidateProps {
 }
 
 export function QuickValidate({ targetId, targetName, onClose }: QuickValidateProps) {
-  const taskStatuses = useTaskStore((s) => s.taskStatuses);
-  const completeTask = useTaskStore((s) => s.completeTask);
-  const profile = useAuthStore((s) => s.profile);
-  const currentHousehold = useHouseholdStore((s) => s.currentHousehold);
+  const taskStatuses = useTaskStore((s: any) => s.taskStatuses);
+  const completeTask = useTaskStore((s: any) => s.completeTask);
+  const profile = useAuthStore((s: any) => s.profile);
+  const currentHousehold = useHouseholdStore((s: any) => s.currentHousehold);
 
-  // Filtrer les tâches de cette cible
-  const tasks = taskStatuses.filter((t) => {
-    return t.target_name === targetName;
-  });
+  const tasks = taskStatuses.filter((t: TaskStatusView) => t.target_name === targetName);
 
   const handleValidate = useCallback(async (task: TaskStatusView) => {
     if (!profile || !currentHousehold) return;
-
     try {
       Vibration.vibrate(50);
       await completeTask(task.task_definition_id, profile.id, currentHousehold.id);
@@ -49,7 +39,6 @@ export function QuickValidate({ targetId, targetName, onClose }: QuickValidatePr
 
   const renderTask = ({ item }: { item: TaskStatusView }) => {
     const colors = STATUS_COLORS[item.status];
-
     return (
       <TouchableOpacity
         style={[styles.taskRow, { borderLeftColor: colors.main }]}
@@ -58,12 +47,19 @@ export function QuickValidate({ targetId, targetName, onClose }: QuickValidatePr
       >
         <View style={styles.taskInfo}>
           <Text style={styles.taskName}>{item.task_type_name}</Text>
-          <Text style={[styles.taskStatus, { color: colors.dark }]}>
-            {getStatusLabel(item.status)}
+          <Text style={styles.taskMeta}>
+            {item.last_completed_at ? timeAgo(item.last_completed_at) : 'Jamais fait'}
           </Text>
         </View>
-        <View style={[styles.validateBtn, { backgroundColor: colors.light }]}>
-          <Text style={[styles.validateText, { color: colors.dark }]}>✓</Text>
+        <View style={styles.taskRight}>
+          <View style={[styles.statusPill, { backgroundColor: colors.light }]}>
+            <Text style={[styles.statusText, { color: colors.dark }]}>
+              {getStatusLabel(item.status)}
+            </Text>
+          </View>
+          <View style={[styles.validateBtn, { backgroundColor: colors.light }]}>
+            <Text style={[styles.validateText, { color: colors.dark }]}>✓</Text>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -71,20 +67,22 @@ export function QuickValidate({ targetId, targetName, onClose }: QuickValidatePr
 
   return (
     <View style={styles.overlay}>
-      <TouchableOpacity style={styles.backdrop} onPress={onClose} />
+      <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
       <View style={styles.sheet}>
-        {/* Poignée */}
         <View style={styles.handle} />
 
-        {/* En-tête */}
         <View style={styles.header}>
-          <Text style={styles.title}>{targetName}</Text>
-          <Text style={styles.subtitle}>
-            {tasks.length} tâche{tasks.length > 1 ? 's' : ''}
-          </Text>
+          <View>
+            <Text style={styles.title}>{targetName}</Text>
+            <Text style={styles.subtitle}>
+              {tasks.length} tâche{tasks.length > 1 ? 's' : ''}
+            </Text>
+          </View>
+          <TouchableOpacity onPress={onClose} style={styles.closeX}>
+            <Text style={styles.closeXText}>✕</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Liste des tâches — 1 tap pour valider */}
         {tasks.length > 0 ? (
           <FlatList
             data={tasks}
@@ -96,12 +94,12 @@ export function QuickValidate({ targetId, targetName, onClose }: QuickValidatePr
         ) : (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>Aucune tâche pour cette cible</Text>
+            <Text style={styles.emptyHint}>Ajoutez-en dans Admin → Tâches</Text>
           </View>
         )}
 
-        {/* Bouton fermer */}
         <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-          <Text style={styles.closeText}>Fermer</Text>
+          <Text style={styles.closeBtnText}>Fermer</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -110,71 +108,101 @@ export function QuickValidate({ targetId, targetName, onClose }: QuickValidatePr
 
 const styles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
     justifyContent: 'flex-end',
     zIndex: 100,
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
   sheet: {
     backgroundColor: COLORS.surface,
-    borderTopLeftRadius: RADIUS.xl,
-    borderTopRightRadius: RADIUS.xl,
-    paddingTop: SPACING.sm,
-    paddingBottom: SPACING.xl,
-    maxHeight: '70%',
-    ...SHADOWS.lg,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 8,
+    paddingBottom: 32,
+    minHeight: SCREEN_HEIGHT * 0.45,
+    maxHeight: SCREEN_HEIGHT * 0.85,
   },
   handle: {
-    width: 36,
-    height: 4,
+    width: 36, height: 4,
     backgroundColor: COLORS.border,
     borderRadius: 2,
     alignSelf: 'center',
-    marginBottom: SPACING.md,
+    marginBottom: 12,
   },
   header: {
-    paddingHorizontal: SPACING.lg,
-    marginBottom: SPACING.md,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: 24,
+    marginBottom: 16,
   },
   title: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
     color: COLORS.text,
   },
   subtitle: {
     fontSize: 14,
     color: COLORS.textSecondary,
-    marginTop: SPACING.xs,
+    marginTop: 2,
+  },
+  closeX: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: COLORS.surfaceAlt,
+  },
+  closeXText: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
   },
   list: {
-    paddingHorizontal: SPACING.lg,
-    gap: SPACING.sm,
+    paddingHorizontal: 20,
+    paddingBottom: 8,
   },
   taskRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: COLORS.surfaceAlt,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.md,
-    borderRadius: RADIUS.md,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 14,
     borderLeftWidth: 4,
+    marginBottom: 8,
   },
   taskInfo: {
     flex: 1,
+    marginRight: 12,
   },
   taskName: {
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text,
   },
-  taskStatus: {
+  taskMeta: {
     fontSize: 12,
-    fontWeight: '500',
+    color: COLORS.textSecondary,
     marginTop: 2,
+  },
+  taskRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statusPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   validateBtn: {
     width: 40,
@@ -182,29 +210,33 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: SPACING.sm,
   },
   validateText: {
     fontSize: 20,
     fontWeight: '700',
   },
   emptyContainer: {
-    padding: SPACING.xl,
+    padding: 32,
     alignItems: 'center',
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: 15,
+    color: COLORS.textSecondary,
+  },
+  emptyHint: {
+    fontSize: 12,
     color: COLORS.textTertiary,
+    marginTop: 4,
   },
   closeBtn: {
-    marginTop: SPACING.md,
-    marginHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
+    marginTop: 8,
+    marginHorizontal: 20,
+    paddingVertical: 14,
     backgroundColor: COLORS.surfaceAlt,
-    borderRadius: RADIUS.md,
+    borderRadius: 14,
     alignItems: 'center',
   },
-  closeText: {
+  closeBtnText: {
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.textSecondary,
