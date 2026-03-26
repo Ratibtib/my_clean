@@ -28,7 +28,7 @@ interface LocalTarget {
   y: number;
   w: number;
   h: number;
-  parent_id: string | null;
+  parent_id: any;
   isNew?: boolean;
   toDelete?: boolean;
 }
