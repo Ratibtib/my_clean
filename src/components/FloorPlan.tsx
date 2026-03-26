@@ -1,105 +1,133 @@
-import React, { useEffect, useCallback } from 'react';
-import {
-  View, Text, StyleSheet, SafeAreaView,
-  RefreshControl, ScrollView, ActivityIndicator, TouchableOpacity,
-} from 'react-native';
-import { COLORS, SPACING, RADIUS, SHADOWS } from '../utils/colors';
+import React, { useState, useMemo, useCallback } from 'react';
+import { View, StyleSheet, Dimensions, Text as RNText } from 'react-native';
+import Svg, { Rect, Circle, Line, Text as SvgText, G } from 'react-native-svg';
+import { COLORS, SPACING, RADIUS, STATUS_COLORS } from '../utils/colors';
 import { QuickValidate } from './QuickValidate';
-import { StreakBanner } from '../components/StreakBanner';
 import { useTaskStore } from '../store/useTaskStore';
-import { useHouseholdStore } from '../store/useHouseholdStore';
-import { useStreakStore } from '../store/useStreakStore';
-import { useAuthStore } from '../store/useAuthStore';
+import { TaskStatus, Target } from '../types';
 
-export function FloorPlanScreen({ navigation }: any) {
-  const { loading, refreshing, fetchAll, refresh } = useTaskStore();
-  const { currentHousehold, fetchHouseholds } = useHouseholdStore();
-  const fetchStreak = useStreakStore((s: any) => s.fetchStreak);
-  const profile = useAuthStore((s: any) => s.profile);
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const PLAN_PADDING = 24;
+const PLAN_WIDTH = SCREEN_WIDTH - PLAN_PADDING * 2;
+const SVG_W = 400;
+const SVG_H = SVG_W * 0.85;
+const PLAN_HEIGHT = PLAN_WIDTH * (SVG_H / SVG_W);
 
-  useEffect(() => {
-    if (profile?.id) {
-      fetchHouseholds(profile.id);
-    }
-  }, [profile]);
+function getTargetStatus(targetName: string, taskStatuses: any[]): TaskStatus {
+  const tasks = taskStatuses.filter((t: any) => t.target_name === targetName);
+  if (tasks.length === 0) return 'green';
+  if (tasks.some((t: any) => t.status === 'red')) return 'red';
+  if (tasks.some((t: any) => t.status === 'orange')) return 'orange';
+  return 'green';
+}
 
-  useEffect(() => {
-    if (currentHousehold) {
-      fetchAll(currentHousehold.id);
-      fetchStreak(currentHousehold.id);
-    }
-  }, [currentHousehold]);
+const EQUIP_EMOJIS: Record<string, string> = {
+  'four': '🍳', 'frigo': '🧊', 'lave-linge': '🫧', 'machine': '🫧',
+  'wc': '🚽', 'toilettes': '🚽', 'lave-vaisselle': '🍽', 'micro': '📡',
+};
 
-  const handleRefresh = useCallback(() => {
-    if (profile?.id) fetchHouseholds(profile.id);
-    if (currentHousehold) {
-      refresh(currentHousehold.id);
-      fetchStreak(currentHousehold.id);
-    }
-  }, [currentHousehold, profile]);
-
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Chargement…</Text>
-        </View>
-      </SafeAreaView>
-    );
+function getEmoji(name: string): string {
+  const lower = name.toLowerCase();
+  for (const [key, emoji] of Object.entries(EQUIP_EMOJIS)) {
+    if (lower.includes(key)) return emoji;
   }
+  return '⚙️';
+}
 
-  if (!currentHousehold) {
+export function FloorPlan() {
+  const [selectedTarget, setSelectedTarget] = useState<{ id: string; name: string } | null>(null);
+  const { targets, taskStatuses } = useTaskStore();
+
+  const zones = useMemo(() => targets.filter((t: Target) => t.type === 'zone'), [targets]);
+  const equipment = useMemo(() => targets.filter((t: Target) => t.type === 'equipment'), [targets]);
+
+  const statuses = useMemo(() => {
+    const map: Record<string, TaskStatus> = {};
+    targets.forEach((t: Target) => { map[t.id] = getTargetStatus(t.name, taskStatuses); });
+    return map;
+  }, [targets, taskStatuses]);
+
+  const handlePress = useCallback((id: string, name: string) => {
+    setSelectedTarget({ id, name });
+  }, []);
+
+  if (targets.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centered}>
-          <Text style={{ fontSize: 48, marginBottom: 16 }}>🏠</Text>
-          <Text style={{ fontSize: 20, fontWeight: '700', color: COLORS.text, marginBottom: 8 }}>
-            Bienvenue sur Chorify !
-          </Text>
-          <Text style={{ fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', paddingHorizontal: 32, marginBottom: 24 }}>
-            Pour commencer, créez votre foyer ou rejoignez-en un dans l'onglet Admin.
-          </Text>
-          <TouchableOpacity
-            style={{ backgroundColor: COLORS.primary, paddingHorizontal: 32, paddingVertical: 14, borderRadius: RADIUS.md }}
-            onPress={() => navigation?.navigate?.('Admin')}
-          >
-            <Text style={{ color: COLORS.surface, fontWeight: '700', fontSize: 15 }}>
-              ⚙️ Aller dans Admin
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+      <View style={styles.emptyContainer}>
+        <RNText style={{ fontSize: 40, marginBottom: 12 }}>📍</RNText>
+        <RNText style={{ fontSize: 15, color: COLORS.textSecondary, textAlign: 'center' }}>
+          Aucune zone dessinée.{'\n'}Allez dans Admin → Modifier le plan.
+        </RNText>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.householdName}>{currentHousehold.name}</Text>
-        <Text style={styles.headerSubtitle}>Touchez une pièce pour agir</Text>
+    <View style={styles.wrapper}>
+      <View style={styles.planContainer}>
+        <Svg width={PLAN_WIDTH} height={PLAN_HEIGHT} viewBox={`0 0 ${SVG_W} ${SVG_H}`}>
+          <Rect x={0} y={0} width={SVG_W} height={SVG_H} rx={8} fill="#EDEAE4" />
+          {Array.from({ length: Math.floor(SVG_W / 20) }).map((_, i) => (
+            <Line key={`gv${i}`} x1={i * 20} y1={0} x2={i * 20} y2={SVG_H} stroke="#D6D3CD" strokeWidth={0.2} />
+          ))}
+          {Array.from({ length: Math.floor(SVG_H / 20) }).map((_, i) => (
+            <Line key={`gh${i}`} x1={0} y1={i * 20} x2={SVG_W} y2={i * 20} stroke="#D6D3CD" strokeWidth={0.2} />
+          ))}
+          {zones.map((zone: Target) => {
+            const status = statuses[zone.id] ?? 'green';
+            const colors = STATUS_COLORS[status];
+            const w = zone.width || 80;
+            const h = zone.height || 60;
+            return (
+              <G key={zone.id} onPress={() => handlePress(zone.id, zone.name)}>
+                <Rect x={zone.position_x} y={zone.position_y} width={w} height={h} rx={6} fill={colors.light} opacity={0.5} />
+                <Rect x={zone.position_x} y={zone.position_y} width={w} height={h} rx={6} fill="none" stroke={colors.main} strokeWidth={1.5} opacity={0.6} />
+                <SvgText x={zone.position_x + w / 2} y={zone.position_y + h / 2} textAnchor="middle" fontSize={w < 60 ? 8 : 11} fontWeight="700" fill={colors.dark}>
+                  {zone.name}
+                </SvgText>
+                {status === 'red' && (
+                  <Circle cx={zone.position_x + w - 8} cy={zone.position_y + 8} r={4} fill={COLORS.red} opacity={0.9} />
+                )}
+              </G>
+            );
+          })}
+          {equipment.map((eq: Target) => {
+            const status = statuses[eq.id] ?? 'green';
+            const colors = STATUS_COLORS[status];
+            const emoji = getEmoji(eq.name);
+            return (
+              <G key={eq.id} onPress={() => handlePress(eq.id, eq.name)}>
+                <Circle cx={eq.position_x} cy={eq.position_y} r={15} fill={colors.light} stroke={colors.main} strokeWidth={1.5} />
+                <SvgText x={eq.position_x} y={eq.position_y - 2} textAnchor="middle" fontSize={12}>{emoji}</SvgText>
+                <SvgText x={eq.position_x} y={eq.position_y + 12} textAnchor="middle" fontSize={6} fontWeight="700" fill={colors.dark}>
+                  {eq.name.length > 8 ? eq.name.slice(0, 8) + '..' : eq.name}
+                </SvgText>
+                {status === 'red' && (
+                  <Circle cx={eq.position_x + 12} cy={eq.position_y - 12} r={3.5} fill={COLORS.red} opacity={0.9} />
+                )}
+              </G>
+            );
+          })}
+        </Svg>
       </View>
-      <StreakBanner />
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={COLORS.primary} />
-        }
-      >
-        <FloorPlan />
-      </ScrollView>
-    </SafeAreaView>
+      <View style={styles.legend}>
+        <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: COLORS.green }]} /><RNText style={styles.legendText}>À jour</RNText></View>
+        <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: COLORS.orange }]} /><RNText style={styles.legendText}>Bientôt</RNText></View>
+        <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: COLORS.red }]} /><RNText style={styles.legendText}>En retard</RNText></View>
+      </View>
+      {selectedTarget && (
+        <QuickValidate targetId={selectedTarget.id} targetName={selectedTarget.name} onClose={() => setSelectedTarget(null)} />
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.md, paddingBottom: SPACING.sm },
-  householdName: { fontSize: 24, fontWeight: '900', color: COLORS.text, letterSpacing: -0.5 },
-  headerSubtitle: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
-  scrollView: { flex: 1 },
-  scrollContent: { paddingHorizontal: SPACING.xs, paddingBottom: SPACING.xxl },
-  loadingText: { fontSize: 14, color: COLORS.textSecondary, marginTop: 12 },
+  wrapper: { flex: 1 },
+  planContainer: { marginHorizontal: PLAN_PADDING / 2, borderRadius: RADIUS.lg, overflow: 'hidden', backgroundColor: '#F8F7F4', borderWidth: 1, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center', padding: 4 },
+  emptyContainer: { alignItems: 'center', paddingVertical: 60 },
+  legend: { flexDirection: 'row', justifyContent: 'center', gap: 20, marginTop: SPACING.sm, paddingVertical: SPACING.sm },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  legendText: { fontSize: 11, color: COLORS.textSecondary, fontWeight: '600' },
 });
