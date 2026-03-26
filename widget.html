@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#FAFAF9">
+<title>Chorify Widget</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--green:#22C55E;--green-l:#DCFCE7;--green-d:#166534;--orange:#F59E0B;--orange-l:#FEF3C7;--orange-d:#92400E;--red:#EF4444;--red-l:#FEE2E2;--red-d:#991B1B;--bg:#FAFAF9;--surface:#FFF;--surface2:#F5F5F4;--border:#E7E5E4;--text:#1C1917;--text2:#78716C;--text3:#A8A29E;--streak:#8B5CF6;--streak-l:#EDE9FE}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);min-height:100vh;min-height:100dvh}
+.app{max-width:420px;margin:0 auto;padding:16px 16px 32px}
+
+/* Login */
+.login{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;gap:16px;padding:0 24px}
+.login-logo{font-size:48px}
+.login-title{font-size:22px;font-weight:800;color:var(--text)}
+.login input{width:100%;padding:12px 16px;border:1px solid var(--border);border-radius:12px;font-size:15px;font-family:inherit;color:var(--text);background:var(--surface);outline:none}
+.login input:focus{border-color:var(--text)}
+.login-btn{width:100%;padding:14px;background:var(--text);color:var(--bg);border:none;border-radius:12px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer}
+.login-btn:active{transform:scale(0.98)}
+.login-err{font-size:13px;color:var(--red);text-align:center}
+
+/* Header */
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.header-title{font-size:20px;font-weight:800;color:var(--text);letter-spacing:-0.5px}
+.header-sub{font-size:11px;color:var(--text2);margin-top:1px}
+.logout-btn{font-size:11px;color:var(--text3);border:1px solid var(--border);border-radius:8px;padding:4px 10px;background:none;font-family:inherit;cursor:pointer}
+
+/* Streak */
+.streak{display:flex;align-items:center;gap:8px;background:var(--streak-l);padding:10px 14px;border-radius:14px;margin-bottom:12px}
+.streak-flame{font-size:22px}
+.streak-num{font-size:22px;font-weight:800;color:var(--streak)}
+.streak-label{font-size:12px;color:var(--streak);font-weight:500}
+
+/* Summary */
+.summary{display:flex;gap:8px;margin-bottom:16px}
+.sum-card{flex:1;padding:10px 12px;border-radius:12px;text-align:center}
+.sum-card.red{background:var(--red-l)}
+.sum-card.orange{background:var(--orange-l)}
+.sum-card.green{background:var(--green-l)}
+.sum-num{font-size:24px;font-weight:800}
+.sum-card.red .sum-num{color:var(--red-d)}
+.sum-card.orange .sum-num{color:var(--orange-d)}
+.sum-card.green .sum-num{color:var(--green-d)}
+.sum-label{font-size:10px;font-weight:600;margin-top:2px}
+.sum-card.red .sum-label{color:var(--red-d)}
+.sum-card.orange .sum-label{color:var(--orange-d)}
+.sum-card.green .sum-label{color:var(--green-d)}
+
+/* Section */
+.section-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:8px}
+
+/* Task list */
+.task{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface);border-radius:12px;margin-bottom:6px;border-left:3px solid;transition:opacity .2s,transform .2s}
+.task:active{transform:scale(0.98)}
+.task.red{border-left-color:var(--red)}
+.task.orange{border-left-color:var(--orange)}
+.task.green{border-left-color:var(--green)}
+.task-info{flex:1;margin-right:8px}
+.task-name{font-size:14px;font-weight:600;color:var(--text)}
+.task-target{font-size:11px;color:var(--text2);margin-top:1px}
+.task-meta{font-size:10px;color:var(--text3);margin-top:2px}
+.task-right{display:flex;align-items:center;gap:6px}
+.pill{font-size:9px;font-weight:700;padding:3px 8px;border-radius:8px}
+.pill.red{background:var(--red-l);color:var(--red-d)}
+.pill.orange{background:var(--orange-l);color:var(--orange-d)}
+.pill.green{background:var(--green-l);color:var(--green-d)}
+.val-btn{width:36px;height:36px;border-radius:50%;border:none;font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s}
+.val-btn:active{transform:scale(0.85)}
+.val-btn.red{background:var(--red-l);color:var(--red-d)}
+.val-btn.orange{background:var(--orange-l);color:var(--orange-d)}
+.val-btn.green{background:var(--green-l);color:var(--green-d)}
+
+/* Toast */
+.toast{position:fixed;top:16px;left:50%;transform:translateX(-50%) translateY(-60px);background:var(--green-d);color:#fff;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:600;z-index:200;transition:transform .3s ease;pointer-events:none;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* Empty */
+.empty{text-align:center;padding:32px;color:var(--text3);font-size:14px}
+
+/* Loading */
+.loading{display:flex;align-items:center;justify-content:center;min-height:60vh;color:var(--text2);font-size:14px}
+
+/* Refresh */
+.refresh-btn{display:block;margin:16px auto 0;padding:8px 20px;border:1px solid var(--border);border-radius:10px;background:none;font-size:12px;color:var(--text2);font-family:inherit;cursor:pointer}
+.refresh-btn:active{background:var(--surface2)}
+
+/* Updated time */
+.updated{text-align:center;margin-top:8px;font-size:10px;color:var(--text3)}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<div class="app" id="app">
+  <div class="loading" id="loadingView">Chargement...</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const SUPA_URL = 'https://pcitusvszhpjdozpolho.supabase.co';
+const SUPA_KEY = 'sb_publishable_9UZQWp7FLUO57sE4AbASWQ_yLgGPQ75';
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+let currentUser = null;
+let currentHousehold = null;
+
+// ── Helpers ──
+function timeAgo(d) {
+  const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000);
+  if (m < 1) return "à l'instant";
+  if (m < 60) return m + 'min';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + 'h';
+  return Math.floor(h / 24) + 'j';
+}
+
+function statusLabel(s) {
+  return s === 'green' ? 'À jour' : s === 'orange' ? 'Bientôt' : 'En retard';
+}
+
+function statusPriority(s) {
+  return s === 'red' ? 0 : s === 'orange' ? 1 : 2;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ── Auth ──
+async function checkAuth() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) {
+    currentUser = session.user;
+    await loadHousehold();
+    renderDashboard();
+  } else {
+    renderLogin();
+  }
+}
+
+function renderLogin() {
+  document.getElementById('app').innerHTML = `
+    <div class="login">
+      <div class="login-logo">🏠</div>
+      <div class="login-title">Chorify</div>
+      <input id="email" type="email" placeholder="Email" autocapitalize="none">
+      <input id="pass" type="password" placeholder="Mot de passe">
+      <button class="login-btn" onclick="doLogin()">Se connecter</button>
+      <div class="login-err" id="loginErr"></div>
+    </div>
+  `;
+}
+
+async function doLogin() {
+  const email = document.getElementById('email').value;
+  const pass = document.getElementById('pass').value;
+  if (!email || !pass) return;
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) {
+    document.getElementById('loginErr').textContent = error.message;
+    return;
+  }
+  currentUser = data.user;
+  await loadHousehold();
+  renderDashboard();
+}
+
+async function doLogout() {
+  await sb.auth.signOut();
+  currentUser = null;
+  currentHousehold = null;
+  renderLogin();
+}
+
+// ── Data ──
+async function loadHousehold() {
+  const { data } = await sb.from('household_memberships')
+    .select('*, household:households(*)')
+    .eq('user_id', currentUser.id);
+  if (data && data.length > 0 && data[0].household) {
+    currentHousehold = data[0].household;
+  }
+}
+
+async function loadTasks() {
+  if (!currentHousehold) return [];
+  const { data } = await sb.from('task_status_view')
+    .select('*')
+    .eq('household_id', currentHousehold.id);
+  return data || [];
+}
+
+async function loadStreak() {
+  if (!currentHousehold) return 0;
+  const { data } = await sb.rpc('get_household_streak', { p_household_id: currentHousehold.id });
+  return data || 0;
+}
+
+async function validateTask(taskDefId) {
+  if (!currentUser || !currentHousehold) return;
+  const { error } = await sb.from('task_completions').insert({
+    task_definition_id: taskDefId,
+    user_id: currentUser.id,
+  });
+  if (error) {
+    showToast('Erreur: ' + error.message);
+    return;
+  }
+  showToast('✓ Tâche validée !');
+  setTimeout(() => renderDashboard(), 500);
+}
+
+// ── Render ──
+async function renderDashboard() {
+  const app = document.getElementById('app');
+  app.innerHTML = '<div class="loading">Chargement...</div>';
+
+  try {
+    const [tasks, streak] = await Promise.all([loadTasks(), loadStreak()]);
+
+    const redCount = tasks.filter(t => t.status === 'red').length;
+    const orangeCount = tasks.filter(t => t.status === 'orange').length;
+    const greenCount = tasks.filter(t => t.status === 'green').length;
+
+    // Sort: red first, then orange, then green
+    const sorted = [...tasks].sort((a, b) => statusPriority(a.status) - statusPriority(b.status));
+    const urgent = sorted.filter(t => t.status !== 'green').slice(0, 5);
+    const hasUrgent = urgent.length > 0;
+    const display = hasUrgent ? urgent : sorted.slice(0, 3);
+
+    const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+    let html = `
+      <div class="header">
+        <div>
+          <div class="header-title">${currentHousehold?.name || 'Chorify'}</div>
+          <div class="header-sub">Widget rapide</div>
+        </div>
+        <button class="logout-btn" onclick="doLogout()">Déco</button>
+      </div>
+
+      <div class="streak">
+        <span class="streak-flame">🔥</span>
+        <span class="streak-num">${streak}</span>
+        <span class="streak-label">jour${streak > 1 ? 's' : ''} sans retard</span>
+      </div>
+
+      <div class="summary">
+        <div class="sum-card red">
+          <div class="sum-num">${redCount}</div>
+          <div class="sum-label">En retard</div>
+        </div>
+        <div class="sum-card orange">
+          <div class="sum-num">${orangeCount}</div>
+          <div class="sum-label">Bientôt</div>
+        </div>
+        <div class="sum-card green">
+          <div class="sum-num">${greenCount}</div>
+          <div class="sum-label">À jour</div>
+        </div>
+      </div>
+
+      <div class="section-title">${hasUrgent ? '⚠️ À faire en priorité' : '✨ Prochaines tâches'}</div>
+    `;
+
+    if (display.length === 0) {
+      html += '<div class="empty">Aucune tâche configurée</div>';
+    } else {
+      display.forEach(t => {
+        const s = t.status;
+        const ago = t.last_completed_at ? 'Fait il y a ' + timeAgo(t.last_completed_at) : 'Jamais fait';
+        html += `
+          <div class="task ${s}">
+            <div class="task-info">
+              <div class="task-name">${t.task_type_name}</div>
+              <div class="task-target">${t.target_name}</div>
+              <div class="task-meta">${ago}</div>
+            </div>
+            <div class="task-right">
+              <span class="pill ${s}">${statusLabel(s)}</span>
+              <button class="val-btn ${s}" onclick="validateTask('${t.task_definition_id}')">✓</button>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    html += `
+      <button class="refresh-btn" onclick="renderDashboard()">↻ Rafraîchir</button>
+      <div class="updated">Mis à jour à ${now}</div>
+    `;
+
+    app.innerHTML = html;
+  } catch (e) {
+    app.innerHTML = `<div class="empty">Erreur: ${e.message}<br><button class="refresh-btn" onclick="renderDashboard()">Réessayer</button></div>`;
+  }
+}
+
+// ── Init ──
+checkAuth();
+</script>
+</body>
+</html>
