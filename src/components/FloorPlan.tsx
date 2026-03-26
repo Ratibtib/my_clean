@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, StyleSheet, Dimensions, Text as RNText } from 'react-native';
+import { View, StyleSheet, Dimensions, Text as RNText, TouchableOpacity } from 'react-native';
 import Svg, { Rect, Circle, Line, Text as SvgText, G } from 'react-native-svg';
 import { COLORS, SPACING, RADIUS, STATUS_COLORS } from '../utils/colors';
 import { QuickValidate } from './QuickValidate';
@@ -12,6 +12,7 @@ const PLAN_WIDTH = SCREEN_WIDTH - PLAN_PADDING * 2;
 const SVG_W = 400;
 const SVG_H = SVG_W * 0.85;
 const PLAN_HEIGHT = PLAN_WIDTH * (SVG_H / SVG_W);
+const SCALE = PLAN_WIDTH / SVG_W;
 
 function getTargetStatus(targetName: string, taskStatuses: any[]): TaskStatus {
   const tasks = taskStatuses.filter((t: any) => t.target_name === targetName);
@@ -47,9 +48,33 @@ export function FloorPlan() {
     return map;
   }, [targets, taskStatuses]);
 
-  const handlePress = useCallback((id: string, name: string) => {
-    setSelectedTarget({ id, name });
-  }, []);
+  // Single touch handler — find what was tapped by coordinates
+  const handleCanvasTap = useCallback((evt: any) => {
+    const { locationX, locationY } = evt.nativeEvent;
+    const svgX = locationX / SCALE;
+    const svgY = locationY / SCALE;
+
+    // Check equipment first (they're on top, smaller = priority)
+    for (const eq of equipment) {
+      const dx = svgX - eq.position_x;
+      const dy = svgY - eq.position_y;
+      if (Math.sqrt(dx * dx + dy * dy) < 20) {
+        setSelectedTarget({ id: eq.id, name: eq.name });
+        return;
+      }
+    }
+
+    // Then check zones
+    for (const zone of zones) {
+      const w = zone.width || 80;
+      const h = zone.height || 60;
+      if (svgX >= zone.position_x && svgX <= zone.position_x + w &&
+          svgY >= zone.position_y && svgY <= zone.position_y + h) {
+        setSelectedTarget({ id: zone.id, name: zone.name });
+        return;
+      }
+    }
+  }, [equipment, zones]);
 
   if (targets.length === 0) {
     return (
@@ -64,7 +89,7 @@ export function FloorPlan() {
 
   return (
     <View style={styles.wrapper}>
-      <View style={styles.planContainer}>
+      <TouchableOpacity activeOpacity={1} onPress={handleCanvasTap} style={styles.planContainer}>
         <Svg width={PLAN_WIDTH} height={PLAN_HEIGHT} viewBox={`0 0 ${SVG_W} ${SVG_H}`}>
           <Rect x={0} y={0} width={SVG_W} height={SVG_H} rx={8} fill="#EDEAE4" />
           {Array.from({ length: Math.floor(SVG_W / 20) }).map((_, i) => (
@@ -79,7 +104,7 @@ export function FloorPlan() {
             const w = zone.width || 80;
             const h = zone.height || 60;
             return (
-              <G key={zone.id} onPress={() => handlePress(zone.id, zone.name)}>
+              <G key={zone.id}>
                 <Rect x={zone.position_x} y={zone.position_y} width={w} height={h} rx={6} fill={colors.light} opacity={0.5} />
                 <Rect x={zone.position_x} y={zone.position_y} width={w} height={h} rx={6} fill="none" stroke={colors.main} strokeWidth={1.5} opacity={0.6} />
                 <SvgText x={zone.position_x + w / 2} y={zone.position_y + h / 2} textAnchor="middle" fontSize={w < 60 ? 8 : 11} fontWeight="700" fill={colors.dark}>
@@ -96,7 +121,7 @@ export function FloorPlan() {
             const colors = STATUS_COLORS[status];
             const emoji = getEmoji(eq.name);
             return (
-              <G key={eq.id} onPress={() => handlePress(eq.id, eq.name)}>
+              <G key={eq.id}>
                 <Circle cx={eq.position_x} cy={eq.position_y} r={15} fill={colors.light} stroke={colors.main} strokeWidth={1.5} />
                 <SvgText x={eq.position_x} y={eq.position_y - 2} textAnchor="middle" fontSize={12}>{emoji}</SvgText>
                 <SvgText x={eq.position_x} y={eq.position_y + 12} textAnchor="middle" fontSize={6} fontWeight="700" fill={colors.dark}>
@@ -109,7 +134,7 @@ export function FloorPlan() {
             );
           })}
         </Svg>
-      </View>
+      </TouchableOpacity>
       <View style={styles.legend}>
         <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: COLORS.green }]} /><RNText style={styles.legendText}>À jour</RNText></View>
         <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: COLORS.orange }]} /><RNText style={styles.legendText}>Bientôt</RNText></View>
